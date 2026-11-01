@@ -1,0 +1,205 @@
+---
+// Timestamped transcript. When a translation exists, a toggle switches between
+// the original language and the translation (without JavaScript both show).
+// Clicking a timestamp asks the clip player to seek there.
+import { LANG_CODES, toSeconds, type Transcript } from '../lib/content';
+import Value from './Value.astro';
+
+interface Props {
+  transcript: Transcript['data'];
+  clips: { n: number; title: string; start: string }[];
+}
+const { transcript, clips } = Astro.props;
+const { original_language: orig, translation_language: trans, segments } = transcript;
+const hasTranslation = Boolean(trans && segments.some((s) => s.translation));
+const origLang = LANG_CODES[orig];
+const transLang = trans ? LANG_CODES[trans] : undefined;
+
+const groups = clips
+  .map((c) => ({ clip: c, segments: segments.filter((s) => s.clip === c.n) }))
+  .filter((g) => g.segments.length > 0);
+
+const WITHHELD = "[Passage withheld at the narrator's request]";
+---
+
+<div class="transcript" data-transcript data-view="both">
+  {hasTranslation && (
+    <div class="toggle" role="group" aria-label="Transcript language" hidden>
+      <button type="button" data-set-view="original" aria-pressed="true">{orig} (original)</button>
+      <button type="button" data-set-view="translation" aria-pressed="false">{trans} translation</button>
+    </div>
+  )}
+
+  {groups.map((g) => (
+    <section class="clip-group" aria-labelledby={`tr-clip-${g.clip.n}`}>
+      <h3 id={`tr-clip-${g.clip.n}`} class="group-title">
+        <span class="label">Clip {g.clip.n}</span> <Value value={g.clip.title} />
+      </h3>
+      <ol class="segments">
+        {g.segments.map((s) => {
+          const offset = toSeconds(s.t) - toSeconds(g.clip.start);
+          return (
+            <li class:list={['seg', { withheld: s.withheld }]} data-clip={s.clip} data-offset={offset}>
+              {s.withheld ? (
+                <span class="ts meta">{s.t}</span>
+              ) : (
+                <button type="button" class="ts" data-seek-clip={s.clip} data-seek-offset={offset} aria-label={`Play from ${s.t}`}>
+                  {s.t}
+                </button>
+              )}
+              <span class="speaker label">{s.speaker}</span>
+              <div class="text">
+                {s.withheld ? (
+                  <p class="withheld-note">{WITHHELD}</p>
+                ) : (
+                  <>
+                    <p class="orig" lang={origLang}>
+                      {hasTranslation && <span class="lang-tag label">{orig}</span>}
+                      <Value value={s.original} />
+                    </p>
+                    {hasTranslation && s.translation && (
+                      <p class="trans" lang={transLang}>
+                        <span class="lang-tag label">{trans}</span>
+                        <Value value={s.translation} />
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  ))}
+</div>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-transcript]')) {
+    const toggle = root.querySelector<HTMLElement>('.toggle');
+    const KEY = 'hv-transcript-view';
+
+    const setView = (view: string) => {
+      root.dataset.view = view;
+      toggle?.querySelectorAll<HTMLButtonElement>('[data-set-view]').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.dataset.setView === view)),
+      );
+    };
+
+    if (toggle) {
+      toggle.hidden = false;
+      let saved = 'original';
+      try { saved = localStorage.getItem(KEY) || 'original'; } catch {}
+      setView(saved === 'translation' ? 'translation' : 'original');
+      toggle.addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-set-view]');
+        if (!b) return;
+        setView(b.dataset.setView!);
+        try { localStorage.setItem(KEY, b.dataset.setView!); } catch {}
+      });
+    } else {
+      root.dataset.view = 'original';
+    }
+
+    root.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-seek-clip]');
+      if (!b) return;
+      document.dispatchEvent(
+        new CustomEvent('hv:seek', { detail: { clip: Number(b.dataset.seekClip), offset: Number(b.dataset.seekOffset) } }),
+      );
+    });
+
+    // Highlight the passage that is playing
+    const segs = [...root.querySelectorAll<HTMLLIElement>('.seg')];
+    document.addEventListener('hv:time', (e) => {
+      const { clip, offset } = (e as CustomEvent<{ clip: number; offset: number }>).detail;
+      let current: HTMLLIElement | undefined;
+      for (const s of segs) {
+        if (Number(s.dataset.clip) === clip && Number(s.dataset.offset) <= offset + 0.25) current = s;
+      }
+      segs.forEach((s) => s.classList.toggle('is-current', s === current));
+    });
+  }
+</script>
+
+<style>
+  .toggle {
+    display: inline-grid;
+    grid-auto-flow: column;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    margin-bottom: var(--space-5);
+  }
+  .toggle[hidden] { display: none; }
+  .toggle button {
+    min-height: var(--tap);
+    padding-inline: var(--space-4);
+    background: var(--white);
+    color: var(--text);
+    border: 0;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    cursor: pointer;
+  }
+  .toggle button + button { border-left: 1px solid var(--ink); }
+  @media (max-width: 30rem) {
+    .toggle { display: grid; grid-auto-flow: row; }
+    .toggle button { text-align: left; }
+    .toggle button + button { border-left: 0; border-top: 1px solid var(--ink); }
+  }
+  .toggle button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+
+  .clip-group + .clip-group { margin-top: var(--space-6); }
+  .group-title {
+    font-size: var(--step-1);
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .group-title .label { color: var(--accent); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-right: var(--space-2); }
+
+  .segments { list-style: none; padding: 0; }
+  .seg {
+    display: grid;
+    grid-template-columns: 4.5rem 7rem 1fr;
+    gap: var(--space-1) var(--space-4);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+  }
+  @media (max-width: 40rem) {
+    .seg { grid-template-columns: auto 1fr; }
+    .seg .text { grid-column: 1 / -1; }
+  }
+  .seg.is-current { background: #FBEDE4; box-shadow: -0.75rem 0 0 #FBEDE4, 0.75rem 0 0 #FBEDE4; }
+
+  .ts {
+    justify-self: start;
+    min-height: var(--tap);
+    min-width: var(--tap);
+    margin-block: calc(-1 * var(--space-3));
+    padding-inline: var(--space-2);
+    background: none;
+    border: 0;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-variant-numeric: tabular-nums;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+  span.ts { display: inline-flex; align-items: center; text-decoration: none; }
+  .ts:hover { text-decoration-thickness: 2px; }
+  .speaker { color: var(--muted); }
+  .text p + p { margin-top: var(--space-2); }
+  .lang-tag { display: none; color: var(--muted); margin-right: var(--space-2); font-size: 0.75rem; }
+  .withheld-note { font-style: italic; color: var(--muted); }
+
+  /* Language views */
+  [data-view='both'] .lang-tag { display: inline; }
+  [data-view='original'] .trans { display: none; }
+  [data-view='translation'] .orig { display: none; }
+  /* If a segment has no translation, still show the original in translation view */
+  [data-view='translation'] .text:not(:has(.trans)) .orig { display: block; }
+</style>

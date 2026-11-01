@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PhotoCard from '../../components/PhotoCard.astro';
+import { url } from '../../lib/url';
+import { getPhotos } from '../../lib/content';
+
+const photos = await getPhotos();
+---
+
+<BaseLayout title="Photographs" section="photographs" description="Photographs of Hurricane Hattie and its aftermath, lent to the archive.">
+  <section class="section">
+    <div class="container">
+      <header class="page-head">
+        <p class="eyebrow">The archive</p>
+        <h1>Photographs</h1>
+        <p class="lede">
+          Pictures of British Honduras before and after Hurricane Hattie. Each one is credited to the person or
+          collection that lent it.
+        </p>
+      </header>
+
+      <p class="count label">{photos.length} {photos.length === 1 ? 'photograph' : 'photographs'}</p>
+
+      {photos.length > 0 ? (
+        <ul class="photo-grid">
+          {photos.map((p) => (
+            <li>
+              <PhotoCard href={url(`/photographs/${p.id}/`)} image={url(p.data.image)} title={p.data.title} date={p.data.date} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No photographs have been added yet.</p>
+      )}
+
+      <aside class="call card" aria-labelledby="call-title">
+        <div>
+          <p class="eyebrow">Call for photographs</p>
+          <h2 id="call-title">Do you have pictures from 1961?</h2>
+        </div>
+        <p>
+          Snapshots, newspaper cuttings, letters or documents from before and after the storm all help tell the story.
+          We scan them and give them back, and lenders are credited on every image.
+        </p>
+        <a class="btn" href={url('/get-involved/?path=photos')}>Lend photographs</a>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-head { margin-bottom: var(--space-6); }
+  .page-head h1 { margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+  .count { color: var(--muted); margin-bottom: var(--space-4); }
+  .photo-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  }
+  .call {
+    margin-top: var(--space-8);
+    border-top-color: var(--accent);
+    display: grid;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .call h2 { font-size: var(--step-2); margin-top: var(--space-2); }
+  .call .btn { justify-self: start; }
+  @media (min-width: 52rem) {
+    .call { grid-template-columns: 1fr 1.4fr auto; gap: var(--space-6); }
+  }
+</style>

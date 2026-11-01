@@ -1,0 +1,124 @@
+---
+import { getEntry } from 'astro:content';
+import { url } from '../lib/url';
+import Value from './Value.astro';
+
+// Caption and credits come from the photograph's own record, so they only need
+// filling in once: src/content/photos/PH-1961-001.md
+const photo = await getEntry('photos', 'PH-1961-001');
+if (!photo) throw new Error('Hero photograph record PH-1961-001 is missing');
+const { caption, credit, source_url } = photo.data;
+---
+
+<section class="hero on-ink" aria-labelledby="hero-title">
+  <img
+    class="hero-img"
+    src={url('/images/belize-city-aerial-1962-hero.jpg')}
+    alt="Aerial photograph of Belize City after Hurricane Hattie, showing the street grid on both sides of Haulover Creek and the sea to the south."
+    width="1056"
+    height="1180"
+    fetchpriority="high"
+    decoding="async"
+  />
+  <div class="scrim" aria-hidden="true"></div>
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">British Honduras · 31 October 1961</p>
+      <h1 id="hero-title">Remembering Hurricane Hattie</h1>
+      <p class="intro">
+        This archive gathers the stories and voices of those who witnessed the Halloween storm in 1961. Each oral
+        history is recorded, transcribed, and reviewed by a historian before it is shared here, alongside photographs
+        of the time. This database is organized and interviews conducted by Alina Scott, PhD.
+      </p>
+      <div class="actions">
+        <a class="btn" href={url('/stories/')}>Listen to the stories</a>
+        <a class="btn btn-ghost" href={url('/get-involved/')}>Submit an oral history</a>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="hero-caption">
+  <div class="container">
+    <p>
+      <span class="label">Above</span>
+      {caption}
+      <a href={url(`/photographs/${photo.id}/`)}>View the full photograph</a>
+    </p>
+    {credit && (
+      <p class="credit meta">
+        <Value value={credit} />
+        {source_url && <a href={source_url} rel="noopener">Source record</a>}
+      </p>
+    )}
+  </div>
+</div>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--ink);
+    color: var(--on-ink);
+    min-height: min(88vh, 50rem);
+    display: flex;
+    align-items: center;
+  }
+  .hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 60% 55%;
+    z-index: -2;
+  }
+  /* Ink scrim on the headline side only. On narrow screens the text spans the
+     full width, so the scrim covers the whole photo. */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      90deg,
+      rgb(18 33 43 / 0.94) 0%,
+      rgb(18 33 43 / 0.88) 38%,
+      rgb(18 33 43 / 0.45) 62%,
+      rgb(18 33 43 / 0) 82%
+    );
+  }
+  @media (max-width: 47.99rem) {
+    .scrim { background: rgb(18 33 43 / 0.82); }
+  }
+
+  .hero-inner { padding-block: var(--space-8); }
+  .hero-copy { max-width: 44rem; }
+  .hero-copy .intro { max-width: 36rem; }
+  .hero h1 {
+    color: var(--white);
+    margin-top: var(--space-3);
+  }
+  .intro {
+    margin-top: var(--space-5);
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--white);
+  }
+  .actions {
+    margin-top: var(--space-6);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .hero-caption {
+    background: var(--ink);
+    color: var(--on-ink);
+    border-top: 1px solid var(--rule-on-ink);
+    padding-block: var(--space-3);
+    font-size: var(--step--1);
+  }
+  .hero-caption p { max-width: none; }
+  .hero-caption .label { color: var(--accent-on-ink); margin-right: var(--space-2); }
+  .hero-caption a { color: var(--accent-on-ink); white-space: nowrap; margin-left: var(--space-2); }
+  .hero-caption .credit { margin-top: var(--space-1); color: var(--on-ink); }</style>

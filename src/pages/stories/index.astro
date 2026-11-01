@@ -1,0 +1,288 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StoryCard from '../../components/StoryCard.astro';
+import { DISTRICTS, LANGUAGES } from '../../config';
+import { url } from '../../lib/url';
+import { getStories, getTranscript } from '../../lib/content';
+
+const stories = await getStories();
+
+// Text the search box looks through: title, summary, narrator and the shared
+// parts of the transcript (withheld passages are never included).
+const index = await Promise.all(
+  stories.map(async (s) => {
+    const t = await getTranscript(s);
+    const transcriptText = t.data.segments
+      .filter((seg) => !seg.withheld)
+      .map((seg) => `${seg.original} ${seg.translation ?? ''}`)
+      .join(' ');
+    return {
+      id: s.id,
+      text: [s.data.title, s.data.summary, s.data.narrator.name, s.data.narrator.other_names, s.data.location_1961, transcriptText]
+        .filter(Boolean)
+        .join(' '),
+    };
+  }),
+);
+---
+
+<BaseLayout title="Listen" section="listen" description="Browse and search the oral histories of Hurricane Hattie.">
+  <section class="section">
+    <div class="container">
+      <header class="page-head">
+        <p class="eyebrow">The archive</p>
+        <h1>Listen</h1>
+        <p class="lede">
+          Oral histories of Hurricane Hattie, recorded with the people who lived through it and with the families who
+          carry their stories.
+        </p>
+      </header>
+
+      {stories.length === 0 ? (
+        <div class="coming card">
+          <h2 class="empty-title">The first stories are being recorded now</h2>
+          <p>
+            Oral histories will appear here once they have been recorded, transcribed and reviewed. If you or someone in
+            your family remembers Hattie, we would like to hear from you.
+          </p>
+          <p class="empty-actions"><a class="btn" href={url('/get-involved/')}>Get involved</a></p>
+        </div>
+      ) : (
+      <div class="archive">
+        <form class="filters" id="filters" role="search" aria-label="Filter stories" hidden>
+          <div class="field">
+            <label for="q" class="label">Search</label>
+            <input id="q" name="q" type="search" placeholder="Titles, summaries, transcripts" autocomplete="off" />
+          </div>
+
+          <fieldset class="field">
+            <legend class="label">Narrator</legend>
+            <div class="segmented">
+              <input type="radio" id="type-all" name="type" value="" checked />
+              <label for="type-all">All</label>
+              <input type="radio" id="type-witness" name="type" value="witness" />
+              <label for="type-witness">Witness</label>
+              <input type="radio" id="type-family" name="type" value="family" />
+              <label for="type-family">Family account</label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="district" class="label">District</label>
+            <select id="district" name="district">
+              <option value="">All districts</option>
+              {DISTRICTS.map((d) => <option value={d}>{d}</option>)}
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="language" class="label">Language</label>
+            <select id="language" name="language">
+              <option value="">All languages</option>
+              {LANGUAGES.map((l) => <option value={l}>{l}</option>)}
+            </select>
+          </div>
+
+          <button type="reset" class="btn btn-ghost reset">Clear filters</button>
+        </form>
+
+        <div class="results">
+          <p class="count label" id="count" aria-live="polite">
+            {stories.length} {stories.length === 1 ? 'story' : 'stories'}
+          </p>
+
+          <ul class="story-list" id="story-list">
+            {stories.map((s) => (
+              <li
+                data-id={s.id}
+                data-type={s.data.type}
+                data-district={s.data.district}
+                data-languages={s.data.languages.join('|')}
+              >
+                <StoryCard
+                  href={url(`/stories/${s.id}/`)}
+                  title={s.data.title}
+                  narrator={s.data.narrator.name}
+                  type={s.data.type}
+                  place={s.data.location_1961}
+                  languages={s.data.languages}
+                  summary={s.data.summary}
+                />
+              </li>
+            ))}
+          </ul>
+
+          <div class="empty card" id="empty" hidden={stories.length > 0}>
+            <h2 class="empty-title">No stories match yet</h2>
+            <p>
+              The archive grows one interview at a time. If you or someone in your family remembers Hattie, the story
+              you're looking for might be yours to tell.
+            </p>
+            <p class="empty-actions">
+              <a class="btn" href={url('/get-involved/')}>Get involved</a>
+              <button type="button" class="btn btn-ghost" id="empty-reset" hidden={stories.length === 0}>Clear filters</button>
+            </p>
+          </div>
+        </div>
+      </div>
+      )}
+    </div>
+  </section>
+
+  <script is:inline type="application/json" id="search-index" set:html={JSON.stringify(index).replace(/</g, '\\u003c')} />
+</BaseLayout>
+
+<script>
+  // Only runs when there are stories (and so a filter form) on the page
+  if (document.querySelector('#filters')) {
+    const form = document.querySelector<HTMLFormElement>('#filters')!;
+    const list = document.querySelector<HTMLUListElement>('#story-list')!;
+    const count = document.querySelector<HTMLParagraphElement>('#count')!;
+    const empty = document.querySelector<HTMLDivElement>('#empty')!;
+    const emptyReset = document.querySelector<HTMLButtonElement>('#empty-reset')!;
+    const items = [...list.querySelectorAll<HTMLLIElement>('li[data-id]')];
+
+    // Lower-case and strip accents so "garifuna" finds "Garífuna".
+    const normalise = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+    const raw = JSON.parse(document.querySelector('#search-index')!.textContent || '[]') as { id: string; text: string }[];
+    const searchText = new Map(raw.map((r) => [r.id, normalise(r.text)]));
+
+    const fields = ['q', 'type', 'district', 'language'] as const;
+
+    function read() {
+      const data = new FormData(form);
+      return Object.fromEntries(fields.map((f) => [f, String(data.get(f) ?? '').trim()])) as Record<(typeof fields)[number], string>;
+    }
+
+    function apply() {
+      const f = read();
+      const terms = normalise(f.q).split(/\s+/).filter(Boolean);
+      let shown = 0;
+
+      for (const li of items) {
+        const text = searchText.get(li.dataset.id!) ?? '';
+        const match =
+          (!f.type || li.dataset.type === f.type) &&
+          (!f.district || li.dataset.district === f.district) &&
+          (!f.language || li.dataset.languages!.split('|').includes(f.language)) &&
+          terms.every((t) => text.includes(t));
+        li.hidden = !match;
+        if (match) shown++;
+      }
+
+      count.textContent = `${shown} ${shown === 1 ? 'story' : 'stories'}${shown < items.length ? ` of ${items.length}` : ''}`;
+      empty.hidden = shown > 0;
+      list.hidden = shown === 0;
+
+      // Keep the filters in the address bar so a filtered view can be shared.
+      const params = new URLSearchParams();
+      for (const k of fields) if (f[k]) params.set(k, f[k]);
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+    }
+
+    // Restore filters from the URL, e.g. /stories/?type=family&district=Cayo
+    const params = new URLSearchParams(location.search);
+    for (const k of fields) {
+      const v = params.get(k);
+      if (!v) continue;
+      const el = form.elements.namedItem(k);
+      if (el instanceof RadioNodeList) el.value = v;
+      else if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) el.value = v;
+    }
+
+    form.hidden = false;
+    form.addEventListener('input', apply);
+    form.addEventListener('submit', (e) => e.preventDefault());
+    form.addEventListener('reset', () => setTimeout(apply));
+    emptyReset.addEventListener('click', () => form.reset());
+    apply();
+  }
+</script>
+
+<style>
+  .page-head { margin-bottom: var(--space-7); }
+  .page-head h1 { margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+
+  .archive {
+    display: grid;
+    gap: var(--space-6);
+    align-items: start;
+  }
+  @media (min-width: 56rem) {
+    .archive { grid-template-columns: 18rem 1fr; }
+    .filters { position: sticky; top: var(--space-4); }
+  }
+
+  /* Filters */
+  .filters {
+    background: var(--panel);
+    border-top: 4px solid var(--ink);
+    padding: var(--space-5);
+    display: grid;
+    gap: var(--space-5);
+  }
+  .filters[hidden] { display: none; }
+  .field { border: 0; padding: 0; min-width: 0; display: grid; gap: var(--space-2); }
+  .field > .label, legend.label { color: var(--muted); padding: 0; }
+  legend.label { margin-bottom: var(--space-2); }
+
+  input[type='search'], select {
+    width: 100%;
+    min-height: var(--tap);
+    padding: var(--space-2) var(--space-3);
+    background: var(--white);
+    border: 1px solid var(--muted);
+    border-radius: var(--radius);
+  }
+  select {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text) 50%), linear-gradient(135deg, var(--text) 50%, transparent 50%);
+    background-position: right 1.1rem center, right 0.75rem center;
+    background-size: 0.35rem 0.35rem;
+    background-repeat: no-repeat;
+  }
+
+  /* Radio group drawn as a segmented control */
+  .segmented { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .segmented input {
+    position: absolute;
+    opacity: 0;
+    width: 1px; height: 1px;
+  }
+  .segmented label {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding-inline: var(--space-3);
+    background: var(--white);
+    border: 1px solid var(--muted);
+    border-radius: var(--radius);
+    font-size: var(--step--1);
+    cursor: pointer;
+  }
+  .segmented input:checked + label {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--white);
+  }
+  .segmented input:focus-visible + label { outline: var(--focus); outline-offset: 2px; }
+  .reset { justify-self: start; }
+
+  /* Results */
+  .count { color: var(--muted); margin-bottom: var(--space-4); }
+  .story-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  }
+  .story-list[hidden], .story-list li[hidden] { display: none; }
+  .empty, .coming { border-top-color: var(--accent); }
+  .empty-title { font-size: var(--step-2); margin-bottom: var(--space-3); }
+  .empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
+</style>

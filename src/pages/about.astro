@@ -1,0 +1,147 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config';
+import { url } from '../lib/url';
+import Value from '../components/Value.astro';
+
+const sections = [
+  { id: 'credit', title: 'Credit by name' },
+  { id: 'withheld', title: 'Withheld passages' },
+  { id: 'families', title: 'Family accounts' },
+  { id: 'care', title: 'Looking after the recordings' },
+  { id: 'changes', title: 'Corrections and removal' },
+  { id: 'team', title: 'Who we are' },
+];
+---
+
+<BaseLayout title="About: ethics and consent" section="about" description={`How ${SITE.name} records, reviews and publishes oral histories of Hurricane Hattie, and how narrators stay in control of their stories.`}>
+  <header class="section page-head">
+    <div class="container">
+      <p class="eyebrow">About the project</p>
+      <h1>Ethics and consent</h1>
+      <p class="lede">
+        These stories belong to the people who lived them and to the families who keep them. This page explains how we
+        record, review and publish each one, and how narrators stay in control of what is shared.
+      </p>
+    </div>
+  </header>
+
+  <div class="container layout">
+    <nav class="toc" aria-labelledby="toc-title">
+      <h2 id="toc-title" class="label">On this page</h2>
+      <ol>
+        {sections.map((s) => <li><a href={`#${s.id}`}>{s.title}</a></li>)}
+      </ol>
+    </nav>
+
+    <div class="prose">
+      <section id="credit" aria-labelledby="credit-h">
+        <h2 id="credit-h">Credit by name</h2>
+        <p>
+          Narrators are always identified by their full name. These are their memories and their words, and they
+          deserve to be credited for them, in the same way an author is credited for a book. We do not publish
+          anonymous testimony.
+        </p>
+        <p>
+          Each story page also credits the interviewers, transcribers and translators who worked on it, and gives a
+          citation so that anyone quoting the story credits the narrator too.
+        </p>
+      </section>
+
+      <section id="withheld" aria-labelledby="withheld-h">
+        <h2 id="withheld-h">Withheld passages</h2>
+        <p>
+          Being credited by name does not mean sharing everything. During review, a narrator can ask for any part of
+          their interview to be kept private, for any reason, without needing to explain. Those passages are removed
+          from the published recording and transcript, and the transcript shows this in their place:
+        </p>
+        <p class="sample">[Passage withheld at the narrator's request]</p>
+        <p>Withheld passages are never included in the site's search.</p>
+      </section>
+
+      <section id="families" aria-labelledby="families-h">
+        <h2 id="families-h">Family accounts</h2>
+        <p>
+          Many people who lived through Hattie are no longer with us, but their stories are often still told in their
+          families. We welcome these accounts. They are marked as family accounts, name the person who lived through the
+          storm alongside the narrator.
+        </p>
+      </section>
+
+      <section id="care" aria-labelledby="care-h">
+        <h2 id="care-h">Looking after the recordings</h2>
+        <p>
+          The website holds only listening copies of approved recordings and the public details shown on each story
+          page. Contact details, consent forms and interview notes are never put on the website.
+        </p>
+        <p>
+          The master recordings are currently maintained by Alina Scott, PhD. As the repository grows, we will explore
+          partnerships with archival institutions for long-term preservation.
+        </p>
+      </section>
+
+      <section id="changes" aria-labelledby="changes-h">
+        <h2 id="changes-h">Corrections and removal</h2>
+        <p>
+          If you are a narrator or a family member and would like something corrected, withheld or removed, please
+          write to <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+        </p>
+      </section>
+
+      <section id="team" aria-labelledby="team-h">
+        <h2 id="team-h">Who we are</h2>
+        <dl class="team">
+          <div><dt class="label">Project lead</dt><dd><Value value={SITE.projectLead} /></dd></div>
+        </dl>
+      </section>
+
+      <aside class="cta card">
+        <h2>Have a story of Hattie?</h2>
+        <p>We would like to hear from you, wherever you live now.</p>
+        <a class="btn" href={url('/get-involved/')}>Get involved</a>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head { padding-bottom: var(--space-6); }
+  .page-head h1 { margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+
+  .layout { display: grid; gap: var(--space-6); padding-bottom: var(--space-8); align-items: start; }
+  @media (min-width: 56rem) {
+    .layout { grid-template-columns: 15rem minmax(0, 1fr); gap: var(--space-8); }
+    .toc { position: sticky; top: var(--space-4); }
+  }
+
+  .toc { border-top: 4px solid var(--ink); padding-top: var(--space-3); }
+  .toc h2 { color: var(--muted); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-bottom: var(--space-2); }
+  .toc ol { list-style: none; padding: 0; }
+  .toc a { display: flex; align-items: center; min-height: var(--tap); border-bottom: 1px solid var(--rule); font-size: var(--step--1); }
+
+  .prose { max-width: var(--measure); }
+  .prose section { scroll-margin-top: var(--space-5); }
+  .prose section + section { margin-top: var(--space-7); }
+  .prose h2 {
+    font-size: var(--step-2);
+    border-top: 4px solid var(--ink);
+    padding-top: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .prose p + p { margin-top: var(--space-4); }
+  .sample {
+    font-style: italic;
+    color: var(--muted);
+    background: var(--white);
+    border-left: 3px solid var(--rule);
+    padding: var(--space-3) var(--space-4);
+  }
+  .team { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .team div { border-bottom: 1px solid var(--rule); padding-bottom: var(--space-2); }
+  .team dt { color: var(--muted); }
+  .team dd { font-weight: 600; display: inline-block; margin-top: var(--space-1); }
+  .cta { margin-top: var(--space-8); border-top-color: var(--accent); }
+  .cta h2 { border: 0; padding: 0; margin-bottom: var(--space-2); }
+  .cta .btn { margin-top: var(--space-4); }
+</style>

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "belize-1931",
+    "name": "The 1931 hurricane",
+    "year": 1931,
+    "status": "future",
+    "blurb": "A future chapter of the archive."
+  },
+  {
+    "id": "hattie-1961",
+    "name": "Hattie",
+    "year": 1961,
+    "status": "collecting",
+    "blurb": "Came ashore on 31 October 1961. We are recording witnesses and the families who carry their stories now."
+  },
+  {
+    "id": "keith-2000",
+    "name": "Keith",
+    "year": 2000,
+    "status": "future",
+    "blurb": "A future chapter of the archive."
+  }
+]

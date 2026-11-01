@@ -1,0 +1,147 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StoryCard from '../../components/StoryCard.astro';
+import { url } from '../../lib/url';
+import { getMedia, getStories, type Media } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const items = await getMedia();
+  return items.map((item) => ({ params: { id: item.id }, props: { item } }));
+}
+
+const { item } = Astro.props as { item: Media };
+const d = item.data;
+const { Content } = await render(item);
+const hasBody = Boolean(item.body?.trim());
+
+const linked = new Set(d.related_stories.map((r) => r.id));
+const stories = (await getStories()).filter((s) => linked.has(s.id));
+
+const rows = [
+  { label: 'Type', value: d.kind },
+  { label: 'Date', value: d.date },
+  { label: 'Made by', value: d.creator },
+  { label: 'Published by', value: d.publisher },
+  { label: 'Length', value: d.duration },
+  { label: 'Rights', value: d.rights },
+  { label: 'Archive ID', value: item.id },
+].filter((r) => r.value?.trim());
+---
+
+<BaseLayout title={d.title} section="media" description={d.summary}>
+  <article class="container media-page">
+    <nav class="crumbs label" aria-label="Breadcrumb">
+      <a href={url('/media/')}>Media</a> <span aria-hidden="true">/</span> <span>{item.id}</span>
+    </nav>
+
+    <header class="head">
+      <p class="eyebrow">{d.kind} · {d.date}</p>
+      <h1>{d.title}</h1>
+      <p class="lede">{d.summary}</p>
+    </header>
+
+    <div class="layout">
+      <div class="main">
+        {d.youtube_id ? (
+          <figure class="video">
+            <div class="frame">
+              <!-- youtube-nocookie.com: YouTube's privacy-enhanced mode, no tracking cookies until play -->
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${d.youtube_id}?rel=0`}
+                title={`${d.title} (video)`}
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <figcaption class="meta">{d.credit} Played from YouTube.</figcaption>
+          </figure>
+        ) : (
+          <div class="offsite card">
+            <p class="label">Hosted on {d.platform}</p>
+            <p>
+              This video belongs to its publisher and is not copied to this site. You can watch it on {d.platform}.
+            </p>
+            <a class="btn" href={d.url} rel="noopener">
+              Watch on {d.platform} <span aria-hidden="true">↗</span>
+              <span class="visually-hidden">(on another website)</span>
+            </a>
+            <p class="meta credit">{d.credit}</p>
+          </div>
+        )}
+
+        {hasBody && <div class="body"><Content /></div>}
+      </div>
+
+      <aside class="details">
+        <dl>
+          {rows.map((r) => (
+            <div>
+              <dt class="label">{r.label}</dt>
+              <dd>{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {d.youtube_id && (
+          <p class="also"><a href={d.url} rel="noopener">Open on YouTube <span aria-hidden="true">↗</span></a></p>
+        )}
+      </aside>
+    </div>
+
+    {stories.length > 0 && (
+      <section class="related" aria-labelledby="related-title">
+        <div class="section-head"><h2 id="related-title">Related oral histories</h2></div>
+        <ul class="card-grid">
+          {stories.map((s) => (
+            <li>
+              <StoryCard
+                href={url(`/stories/${s.id}/`)}
+                title={s.data.title}
+                narrator={s.data.narrator.name}
+                type={s.data.type}
+                place={s.data.location_1961}
+                languages={s.data.languages}
+                summary={s.data.summary}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</BaseLayout>
+
+<style>
+  .media-page { padding-block: var(--space-5) var(--space-8); }
+  .crumbs { color: var(--muted); margin-bottom: var(--space-5); display: flex; gap: var(--space-2); align-items: center; }
+  .crumbs a { min-height: var(--tap); display: inline-flex; align-items: center; }
+  .head h1 { margin-top: var(--space-2); font-size: var(--step-3); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+
+  .layout { display: grid; gap: var(--space-6); margin-top: var(--space-6); align-items: start; }
+  @media (min-width: 56rem) {
+    .layout { grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr); gap: var(--space-7); }
+  }
+
+  .video { background: var(--white); border: 1px solid var(--rule); padding: var(--space-3); }
+  .frame { position: relative; aspect-ratio: 16 / 9; background: var(--ink); }
+  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video figcaption { padding-top: var(--space-3); }
+
+  .offsite { border-top-color: var(--accent); display: grid; gap: var(--space-3); justify-items: start; }
+  .offsite .label { color: var(--accent); }
+  .offsite .credit { margin-top: var(--space-1); }
+
+  .body { margin-top: var(--space-6); }
+
+  dl { border-top: 4px solid var(--ink); }
+  dl div { display: grid; grid-template-columns: 8rem 1fr; gap: var(--space-3); padding-block: var(--space-3); border-bottom: 1px solid var(--rule); }
+  dt { color: var(--muted); padding-top: 2px; }
+  .also { margin-top: var(--space-4); }
+  .also a { display: inline-flex; align-items: center; min-height: var(--tap); }
+
+  .related { margin-top: var(--space-8); }
+  .card-grid { list-style: none; padding: 0; display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); }
+</style>

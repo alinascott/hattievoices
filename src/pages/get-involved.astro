@@ -1,0 +1,427 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { LANGUAGES, SITE } from '../config';
+import { url } from '../lib/url';
+
+const paths = [
+  { value: 'own', title: 'Share my own memory', text: 'You lived through Hattie and would like to be interviewed.' },
+  { value: 'relative', title: "Share a relative's story", text: 'Someone in your family lived through it, or you carry their story.' },
+  { value: 'photos', title: 'Lend photographs', text: 'You have pictures, cuttings, letters or documents from the time.' },
+  { value: 'volunteer', title: 'Volunteer', text: 'Help transcribe, translate, or connect us with elders in your community.' },
+];
+
+const faqs = [
+  {
+    q: 'Will my recording go online right away?',
+    a: 'No. We transcribe every interview first, and nothing is published until it has been reviewed.',
+  },
+  {
+    q: 'Do I need to live in Belize?',
+    a: 'No. Many people who remember Hattie, and many of their children and grandchildren, now live abroad. We can interview you by phone or video wherever you are.',
+  },
+  {
+    q: 'Will my name appear with my story?',
+    a: 'Yes. Narrators are credited by their full name, because these are their stories. You choose which parts are shared, and any passage you want kept private is marked as withheld at your request.',
+  },
+  {
+    q: 'What if the person who lived it has passed?',
+    a: "Family accounts are welcome. Tell us the stories you grew up hearing. They are published as family accounts, with the original witness's name alongside yours.",
+  },
+  {
+    q: 'Who keeps the recordings?',
+    a: 'The master recordings are currently maintained by Alina Scott, PhD. As the repository grows, we will explore partnerships with archival institutions for long-term preservation.',
+  },
+];
+
+const endpoint = SITE.formEndpoint;
+// The script sends to FormSubmit's JSON endpoint (https://formsubmit.co/ajax/...) and then
+// moves to the thank-you page. Without JavaScript the form posts normally and FormSubmit
+// redirects to the thank-you page itself via _next, which must be an absolute URL.
+const ajaxEndpoint = endpoint.replace(/^https:\/\/formsubmit\.co\//, 'https://formsubmit.co/ajax/');
+const thanksPath = url('/get-involved/thank-you/');
+const thanksUrl = new URL(thanksPath, Astro.site).toString();
+---
+
+<BaseLayout title="Get involved" section="get-involved" description="Share a memory of Hurricane Hattie, a relative's story, or photographs from 1961, or volunteer with the project.">
+  <section class="section intro">
+    <div class="container">
+      <p class="eyebrow">Get involved</p>
+      <h1>Share a story of Hattie</h1>
+      <p class="lede">
+        Tell us a little about yourself and we will get in touch to talk it through. There is no obligation, and
+        nothing you send here is published.
+      </p>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="container layout">
+      <div class="form-wrap">
+        <div class="notice" role="note">
+          <p class="label">Please note</p>
+          <p>Please don't upload recordings here. We record and transcribe every interview ourselves.</p>
+        </div>
+
+        <form
+          id="interest-form"
+          class="interest-form"
+          action={endpoint || undefined}
+          method="POST"
+          data-endpoint={ajaxEndpoint}
+          data-thanks={thanksPath}
+          data-contact={SITE.contactEmail}
+          data-site-name={SITE.name}
+          novalidate
+        >
+          <!-- Settings read by FormSubmit -->
+          <input type="hidden" name="_subject" value={`${SITE.name}: new interest form`} />
+          <input type="hidden" name="_template" value="table" />
+          <input type="hidden" name="_next" value={thanksUrl} />
+          <!-- Spam trap: people never see or fill this -->
+          <p class="visually-hidden" aria-hidden="true">
+            <label>Leave this empty <input type="text" name="_honey" tabindex="-1" autocomplete="off" /></label>
+          </p>
+
+          <fieldset class="paths">
+            <legend><span class="step label">1</span> What would you like to do?</legend>
+            <div class="path-grid">
+              {paths.map((p, i) => (
+                <div class="path">
+                  <input type="radio" id={`path-${p.value}`} name="path" value={p.value} required checked={i === 0} />
+                  <label for={`path-${p.value}`}>
+                    <span class="path-title">{p.title}</span>
+                    <span class="path-text">{p.text}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span class="step label">2</span> About you</legend>
+            <div class="field">
+              <label for="name">Your name <span class="req">(required)</span></label>
+              <input id="name" name="name" type="text" autocomplete="name" required />
+            </div>
+            <div class="field">
+              <label for="contact">Email, phone or WhatsApp <span class="req">(required)</span></label>
+              <input id="contact" name="contact" type="text" required aria-describedby="contact-hint" />
+              <p class="hint" id="contact-hint">However you would like us to reach you. Include the country code for phone numbers.</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="narrator-fields" data-show-for="own relative">
+            <legend><span class="step label">3</span> <span data-label-own>About your memory</span><span data-label-relative hidden>About the person who lived through the storm</span></legend>
+            <div class="field" data-show-for="relative">
+              <label for="witness">Who lived through the storm?</label>
+              <input id="witness" name="witness" type="text" aria-describedby="witness-hint" />
+              <p class="hint" id="witness-hint">Their full name and how they are related to you.</p>
+            </div>
+            <div class="field">
+              <label for="location_1961">Where were they in 1961?</label>
+              <input id="location_1961" name="location_1961" type="text" aria-describedby="loc-hint" />
+              <p class="hint" id="loc-hint">Town, village or neighbourhood, if known.</p>
+            </div>
+            <div class="field">
+              <label for="language">Preferred interview language</label>
+              <select id="language" name="language">
+                <option value="">Choose a language</option>
+                {LANGUAGES.map((l) => <option value={l}>{l}</option>)}
+              </select>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span class="step label" data-step-last>4</span> Anything else</legend>
+            <div class="field">
+              <label for="description">A short description</label>
+              <textarea id="description" name="description" rows="5" aria-describedby="desc-hint"></textarea>
+              <p class="hint" id="desc-hint">A few lines are plenty. We will hear the full story in the interview.</p>
+            </div>
+            <div class="check">
+              <input id="has_photos" name="has_photos" type="checkbox" value="yes" />
+              <label for="has_photos">I have photographs or documents from the time</label>
+            </div>
+            <div class="check">
+              <input id="consent" name="consent" type="checkbox" value="yes" required />
+              <label for="consent">I agree to be contacted by the {SITE.name} team about this <span class="req">(required)</span></label>
+            </div>
+          </fieldset>
+
+          <div class="errors" id="form-errors" role="alert" hidden></div>
+
+          <div class="submit-row">
+            <button type="submit" class="btn">Send</button>
+            <p class="hint">Your contact details are only used to arrange an interview. They are never published.</p>
+          </div>
+        </form>
+      </div>
+
+      <aside class="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Questions</h2>
+        {faqs.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+        <p class="more">
+          More about how we work: <a href={url('/about/')}>ethics and consent</a>.
+        </p>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#interest-form')!;
+  const errors = document.querySelector<HTMLDivElement>('#form-errors')!;
+  const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  const endpoint = form.dataset.endpoint;
+
+  // ---------- Show only the fields that fit the chosen path ----------
+  const showFor = [...form.querySelectorAll<HTMLElement>('[data-show-for]')];
+  function updatePath() {
+    const path = (form.elements.namedItem('path') as RadioNodeList).value;
+    for (const el of showFor) {
+      const show = el.dataset.showFor!.split(' ').includes(path);
+      el.hidden = !show;
+      // Disabled fields are skipped by validation and not sent
+      el.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea').forEach((i) => (i.disabled = !show));
+    }
+    form.querySelector('[data-label-own]')!.toggleAttribute('hidden', path !== 'own');
+    form.querySelector('[data-label-relative]')!.toggleAttribute('hidden', path !== 'relative');
+    const label = (id: string, own: string, other: string) => {
+      const l = form.querySelector<HTMLLabelElement>(`label[for="${id}"]`);
+      if (l) l.textContent = path === 'own' ? own : other;
+    };
+    label('location_1961', 'Where were you in 1961?', 'Where were they in 1961?');
+    const desc = form.querySelector<HTMLLabelElement>('label[for="description"]')!;
+    desc.textContent = path === 'volunteer' ? 'How would you like to help?' : path === 'photos' ? 'Tell us about the photographs' : 'A short description';
+    form.querySelector('[data-step-last]')!.textContent = showFor[0].hidden ? '3' : '4';
+    if (path === 'photos') (form.elements.namedItem('has_photos') as HTMLInputElement).checked = true;
+  }
+
+  // Preselect a path from the link, e.g. /get-involved/?path=photos
+  const wanted = new URLSearchParams(location.search).get('path');
+  const radio = wanted && form.querySelector<HTMLInputElement>(`input[name="path"][value="${CSS.escape(wanted)}"]`);
+  if (radio) radio.checked = true;
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLInputElement).name === 'path') updatePath();
+  });
+  updatePath();
+
+  // ---------- Validation ----------
+  const describeInvalid = (el: HTMLInputElement) => {
+    const label = form.querySelector(`label[for="${el.id}"]`)?.textContent?.replace('(required)', '').trim() ?? el.name;
+    if (el.type === 'checkbox') return `Please tick “${label}”.`;
+    return `Please fill in “${label}”.`;
+  };
+
+  function showErrors(messages: string[], focusFirst?: HTMLElement, title?: string) {
+    errors.innerHTML = '';
+    if (!messages.length) { errors.hidden = true; return; }
+    const p = document.createElement('p');
+    p.className = 'label';
+    p.textContent = title ?? (messages.length === 1 ? 'One thing to fix' : `${messages.length} things to fix`);
+    const ul = document.createElement('ul');
+    for (const m of messages) { const li = document.createElement('li'); li.textContent = m; ul.append(li); }
+    errors.append(p, ul);
+    errors.hidden = false;
+    focusFirst?.focus();
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const invalid = [...form.querySelectorAll<HTMLInputElement>('input, select, textarea')].filter((el) => !el.disabled && !el.checkValidity());
+    form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+    invalid.forEach((el) => el.setAttribute('aria-invalid', 'true'));
+    if (invalid.length) {
+      showErrors(invalid.map(describeInvalid), invalid[0]);
+      return;
+    }
+    showErrors([]);
+
+    const contact = form.dataset.contact;
+    if (!endpoint) {
+      showErrors([`The form is not connected yet. Please email ${contact} instead.`], undefined, 'Not sent');
+      return;
+    }
+
+    // Label each answer with its question, so the email reads clearly
+    const data = new FormData(form);
+    const chosen = form.querySelector<HTMLInputElement>('input[name="path"]:checked');
+    const pathTitle = chosen?.labels?.[0]?.querySelector('.path-title')?.textContent?.trim() ?? String(data.get('path'));
+    const payload: Record<string, string> = {};
+    for (const [key, value] of data) {
+      if (key.startsWith('_')) { payload[key] = String(value); continue; }
+      if (key === 'path') { payload['What they would like to do'] = pathTitle; continue; }
+      if (!String(value).trim()) continue; // leave unanswered questions out of the email
+      const label = form.querySelector(`label[for="${key}"]`)?.textContent?.replace('(required)', '').trim() || key;
+      payload[label] = String(value);
+    }
+    payload._subject = `${form.dataset.siteName}: ${pathTitle}`;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json().catch(() => ({}));
+      // FormSubmit answers { success: "true" } or { success: "false", message }
+      if (!res.ok || String(result.success) !== 'true') throw new Error(result.message || String(res.status));
+      const firstName = String(data.get('name') ?? '').trim().split(/\s+/)[0];
+      try { sessionStorage.setItem('hv-thanks-name', firstName); } catch {}
+      location.assign(form.dataset.thanks!);
+    } catch (err) {
+      console.error('Form not sent:', err);
+      showErrors([`Sorry, your message could not be sent. Please try again in a moment, or email ${contact} instead.`], undefined, 'Not sent');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send';
+    }
+  });
+</script>
+
+<style>
+  .intro { padding-bottom: var(--space-6); }
+  .intro h1 { margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+
+  .form-section { padding-bottom: var(--space-8); }
+  .layout { display: grid; gap: var(--space-7); align-items: start; }
+  @media (min-width: 60rem) {
+    .layout { grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 1fr); }
+    .faq { position: sticky; top: var(--space-4); }
+  }
+
+  .notice {
+    background: var(--ink);
+    color: var(--white);
+    padding: var(--space-4) var(--space-5);
+    border-left: 6px solid var(--accent-on-ink);
+    margin-bottom: var(--space-6);
+  }
+  .notice .label { color: var(--accent-on-ink); margin-bottom: var(--space-1); }
+  .notice p:last-child { font-weight: 600; }
+  .notice[hidden] { display: none; }
+
+  /* Form */
+  .interest-form { display: grid; gap: var(--space-6); }
+  .interest-form[hidden] { display: none; }
+  fieldset {
+    border: 0;
+    border-top: 4px solid var(--ink);
+    padding: var(--space-4) 0 0;
+    margin: 0;
+    min-width: 0;
+    display: grid;
+    gap: var(--space-5);
+  }
+  fieldset[hidden], .field[hidden] { display: none; }
+  legend {
+    float: left;
+    width: 100%;
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    font-stretch: var(--display-stretch);
+    text-transform: uppercase;
+    font-size: var(--step-2);
+    line-height: 1.1;
+  }
+  legend + * { clear: both; }
+  .step {
+    display: inline-grid;
+    place-items: center;
+    width: 1.75rem; height: 1.75rem;
+    margin-right: var(--space-2);
+    background: var(--accent);
+    color: var(--white);
+    font-size: var(--step--1);
+    vertical-align: 0.25em;
+  }
+
+  .path-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+  .path { position: relative; }
+  .path input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .path label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    height: 100%;
+    min-height: var(--tap);
+    padding: var(--space-4) var(--space-4) var(--space-4) 3.25rem;
+    background: var(--white);
+    border: 2px solid var(--rule);
+    cursor: pointer;
+    position: relative;
+  }
+  .path label::before {
+    content: '';
+    position: absolute;
+    left: var(--space-4);
+    top: calc(var(--space-4) + 2px);
+    width: 20px; height: 20px;
+    border: 2px solid var(--muted);
+    border-radius: 50%;
+    background: var(--white);
+  }
+  .path input:checked + label { border-color: var(--ink); background: var(--white); box-shadow: inset 0 0 0 1px var(--ink); }
+  .path input:checked + label::before { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 5px, var(--white) 6px); }
+  .path input:focus-visible + label { outline: var(--focus); outline-offset: 2px; }
+  .path-title { font-weight: 600; }
+  .path-text { font-size: var(--step--1); color: var(--muted); line-height: 1.45; }
+
+  .field { display: grid; gap: var(--space-2); }
+  .field label { font-weight: 600; }
+  .req { font-weight: 400; color: var(--muted); font-size: var(--step--1); }
+  .hint { font-size: var(--step--1); color: var(--muted); }
+  input[type='text'], select, textarea {
+    width: 100%;
+    min-height: var(--tap);
+    padding: var(--space-2) var(--space-3);
+    background: var(--white);
+    border: 1px solid var(--muted);
+    border-radius: var(--radius);
+  }
+  textarea { resize: vertical; line-height: 1.5; }
+  [aria-invalid='true'] { border-color: var(--accent) !important; box-shadow: 0 0 0 1px var(--accent); }
+
+  .check { display: flex; gap: var(--space-3); align-items: flex-start; }
+  .check input { width: 24px; height: 24px; margin: 10px; flex: none; accent-color: var(--accent); }
+  .check label { padding-top: 10px; padding-bottom: 10px; }
+  .check input[aria-invalid='true'] { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .errors { background: #FBEDE4; border-left: 4px solid var(--accent); padding: var(--space-4) var(--space-5); }
+  .errors[hidden] { display: none; }
+  .errors :global(.label) { color: var(--accent); margin-bottom: var(--space-2); }
+  .errors :global(ul) { padding-left: 1.2em; }
+
+  .submit-row { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; }
+  .submit-row .btn { min-width: 10rem; }
+  .submit-row .hint { flex: 1 1 16rem; }
+
+
+  /* FAQ */
+  .faq h2 { font-size: var(--step-2); border-top: 4px solid var(--ink); padding-top: var(--space-3); margin-bottom: var(--space-3); }
+  details { border-bottom: 1px solid var(--rule); }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    align-items: center;
+    min-height: var(--tap);
+    padding-block: var(--space-3);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; font-family: var(--font-mono); color: var(--accent); font-size: 1.25rem; }
+  details[open] summary::after { content: '–'; }
+  details p { padding-bottom: var(--space-4); color: var(--text); font-size: var(--step--1); line-height: 1.6; }
+  .more { margin-top: var(--space-4); font-size: var(--step--1); }
+</style>

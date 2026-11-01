@@ -1,0 +1,13 @@
+---
+// Prints a content value. Bracketed placeholders such as "[Rights holder]" get
+// a dashed outline so unfinished fields are easy to spot before launch.
+interface Props {
+  value?: string | null;
+  fallback?: string;
+}
+const { value, fallback = '' } = Astro.props;
+const text = value?.trim() || fallback;
+const isPlaceholder = /^\[.*\]$/.test(text);
+---
+
+{isPlaceholder ? <span class="placeholder">{text}</span> : text}

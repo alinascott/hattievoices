@@ -1,0 +1,339 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import StoryCard from '../components/StoryCard.astro';
+import MediaCard from '../components/MediaCard.astro';
+import StormTimeline from '../components/StormTimeline.astro';
+import { SITE } from '../config';
+import { url } from '../lib/url';
+import Value from '../components/Value.astro';
+import { getFeaturedStories, getMedia, getPhotos } from '../lib/content';
+
+const facts = [
+  { figure: '31 Oct 1961', text: 'Hattie came ashore on 31 October 1961.' },
+  { figure: '14 ft', text: 'A storm tide of up to 14 feet near Belize City.' },
+  { figure: 'Damage', text: 'The hurricane caused catastrophic damage throughout the region, leaving thousands homeless and hundreds dead.' },
+  { figure: 'Belmopan', text: 'The government later moved the capital inland, to Belmopan.' },
+];
+
+const featured = await getFeaturedStories(3);
+const allPhotos = await getPhotos();
+const photos = allPhotos.slice(0, 6);
+// Image panel between the process steps and Featured voices
+const panel = allPhotos.find((p) => p.id === 'PH-1961-005');
+const media = (await getMedia()).slice(0, 3);
+
+const steps = [
+  { title: 'Get in touch', text: 'You tell us about yourself or a relative through the form or by email.' },
+  { title: 'Record', text: 'We arrange an interview in the language the narrator prefers, in person, by phone or by video.' },
+  { title: 'Transcribe', text: 'Volunteers transcribe the recording and, where needed, translate it into English.' },
+  { title: 'Publish', text: 'After review by a historian, the project lead adds the story to this archive, credited by name.' },
+];
+---
+
+<BaseLayout>
+  <Hero />
+
+  <!-- At a glance -->
+  <section class="glance" aria-labelledby="glance-title">
+    <div class="container">
+      <h2 id="glance-title" class="label glance-title">At a glance</h2>
+      <ul class="facts">
+        {facts.map((f) => (
+          <li>
+            <span class="figure">{f.figure}</span>
+            <span class="fact-text">{f.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- About the project -->
+  <section class="section" aria-labelledby="about-title">
+    <div class="container about">
+      <div class="section-head">
+        <h2 id="about-title">About the project</h2>
+      </div>
+      <div class="about-grid">
+        <div class="about-copy">
+          <p class="lede">
+            {SITE.name} records stories of Hurricane Hattie through the memories of those who experienced it. This is a
+            public oral history project that creates a historical repository for Belizean stories. Browse the site and
+            learn how you can <a href={url('/get-involved/')}>get involved</a>.
+          </p>
+          <p>
+            This project exists as a way to collect the memories of our elders who witnessed and experienced the
+            disastrous storm.
+          </p>
+          <p><a href={url('/about/')}>How we work: ethics and consent</a></p>
+        </div>
+        <dl class="about-facts">
+          <div><dt class="label">Project lead</dt><dd><Value value={SITE.projectLead} /></dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process -->
+  <section class="section panel" aria-labelledby="process-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="process-title">How a story reaches this archive</h2>
+      </div>
+      <ol class="steps">
+        {steps.map((s, i) => (
+          <li>
+            <span class="step-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </li>
+        ))}
+      </ol>
+      <p class="steps-note">
+        Nothing sent to us appears on this site automatically. <a href={url('/get-involved/')}>Start with step one.</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Image panel -->
+  {panel && (
+    <section class="image-panel dark" aria-label="From the archive">
+      <div class="container">
+        <figure>
+          <a href={url(`/photographs/${panel.id}/`)} class="panel-link">
+            <img src={url(panel.data.image)} alt={panel.data.alt} loading="lazy" decoding="async" />
+          </a>
+          <figcaption>
+            <p class="eyebrow">From the archive</p>
+            <p class="panel-caption">{panel.data.caption}</p>
+            {panel.data.credit && <p class="meta">{panel.data.credit}</p>}
+            <p><a href={url(`/photographs/${panel.id}/`)}>View this record</a></p>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+  )}
+
+  <!-- Featured voices -->
+  <section class="section" aria-labelledby="voices-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="voices-title">Featured voices</h2>
+        <a class="label" href={url('/stories/')}>All stories →</a>
+      </div>
+      {featured.length > 0 ? (
+        <ul class="card-grid">
+          {featured.map((s) => (
+            <li>
+              <StoryCard
+                href={url(`/stories/${s.id}/`)}
+                title={s.data.title}
+                narrator={s.data.narrator.name}
+                type={s.data.type}
+                place={s.data.location_1961}
+                languages={s.data.languages}
+                quote={s.data.featured_quote?.text}
+                summary={s.data.summary}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>The first stories are being recorded now. <a href={url('/get-involved/')}>Share yours.</a></p>
+      )}
+    </div>
+  </section>
+
+  <!-- Photographs -->
+  <section class="section panel" aria-labelledby="photos-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="photos-title">Photographs</h2>
+        <a class="label" href={url('/photographs/')}>Explore gallery →</a>
+      </div>
+      <ul class="thumbs">
+        {photos.map((p) => (
+          <li>
+            <a href={url(`/photographs/${p.id}/`)}>
+              <img src={url(p.data.image)} alt={p.data.title} loading="lazy" decoding="async" />
+            </a>
+          </li>
+        ))}
+      </ul>
+      <div class="photos-actions">
+        <a class="btn" href={url('/photographs/')}>Explore gallery</a>
+        <p>
+          Do you have pictures from 1961? Snapshots, cuttings, letters and documents all help tell the story.
+          <a href={url('/get-involved/?path=photos')}>Lend photographs</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video and news -->
+  {media.length > 0 && (
+    <section class="section" aria-labelledby="media-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="media-title">Video and news</h2>
+          <a class="label" href={url('/media/')}>All media →</a>
+        </div>
+        <ul class="card-grid">
+          {media.map((m) => (
+            <li>
+              <MediaCard
+                href={url(`/media/${m.id}/`)}
+                title={m.data.title}
+                kind={m.data.kind}
+                date={m.data.date}
+                creator={m.data.creator}
+                platform={m.data.platform}
+                duration={m.data.duration}
+                summary={m.data.summary}
+                embedded={Boolean(m.data.youtube_id)}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  <!-- Storm timeline -->
+  <section class="section dark timeline-section" aria-labelledby="timeline-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="timeline-title">Storms of Belize</h2>
+        <p class="meta">Hattie is the first chapter. Others may follow.</p>
+      </div>
+      <StormTimeline />
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* At a glance */
+  .glance {
+    background: var(--panel);
+    border-bottom: 1px solid var(--rule);
+    padding-block: var(--space-6);
+  }
+  .glance-title { color: var(--accent); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-bottom: var(--space-4); }
+  .facts {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--space-5);
+  }
+  .facts li {
+    border-top: 3px solid var(--ink);
+    padding-top: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .figure {
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    font-stretch: var(--display-stretch);
+    text-transform: uppercase;
+    font-size: var(--step-3);
+    line-height: 1;
+    color: var(--ink);
+  }
+  .fact-text { color: var(--muted); font-size: var(--step--1); line-height: 1.5; }
+
+  /* About */
+  .about-grid {
+    display: grid;
+    gap: var(--space-6);
+  }
+  @media (min-width: 52rem) {
+    .about-grid { grid-template-columns: 2fr 1fr; }
+  }
+  .lede { font-size: var(--step-1); line-height: 1.5; }
+  .about-copy > * + * { margin-top: var(--space-4); }
+  .about-facts { display: grid; gap: var(--space-4); align-content: start; }
+  .about-facts div { border-top: 1px solid var(--rule); padding-top: var(--space-2); }
+  .about-facts dt { color: var(--muted); }
+  .about-facts dd { margin-top: var(--space-1); font-weight: 600; justify-self: start; display: inline-block; }
+
+  .panel { background: var(--panel); }
+  .section-head a.label { color: var(--accent); min-height: var(--tap); display: inline-flex; align-items: center; }
+
+  /* Cards */
+  .card-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  }
+
+  /* Image panel */
+  .image-panel { padding-block: var(--space-7); }
+  .image-panel figure { display: grid; gap: var(--space-5); align-items: center; }
+  @media (min-width: 56rem) {
+    .image-panel figure { grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); gap: var(--space-7); }
+  }
+  .panel-link { display: block; background: var(--white); padding: var(--space-2); }
+  .panel-link img { width: 100%; }
+  .image-panel figcaption > * + * { margin-top: var(--space-3); }
+  .panel-caption { font-size: var(--step-1); line-height: 1.5; color: var(--white); }
+
+  /* Photographs: compact preview */
+  .thumbs {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+  }
+  @media (max-width: 40rem) {
+    .thumbs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+  }
+  .thumbs a { display: block; aspect-ratio: 1; background: var(--white); border: 1px solid var(--rule); padding: 4px; }
+  .thumbs a:hover { border-color: var(--ink); }
+  .thumbs img { width: 100%; height: 100%; object-fit: cover; }
+  .photos-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4) var(--space-6);
+    margin-top: var(--space-5);
+  }
+  .photos-actions p { flex: 1 1 20rem; font-size: var(--step--1); color: var(--muted); }
+
+  /* Process */
+  .steps {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5) var(--space-7);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  }
+  .steps li {
+    border-top: 3px solid var(--ink);
+    padding-top: var(--space-3);
+    position: relative;
+  }
+  .steps li:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: calc(-1 * var(--space-7) / 2 - 0.3em);
+    top: var(--space-3);
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+  .step-n { font-family: var(--font-mono); color: var(--accent); font-weight: 500; display: block; margin-bottom: var(--space-2); }
+  .steps h3 { margin-bottom: var(--space-2); }
+  .steps p { color: var(--muted); font-size: var(--step--1); line-height: 1.5; }
+  .steps-note { margin-top: var(--space-6); }
+  @media (max-width: 47.99rem) {
+    .steps li::after { display: none; }
+  }
+
+  .timeline-section { padding-bottom: var(--space-8); }
+</style>

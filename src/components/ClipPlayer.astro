@@ -1,0 +1,211 @@
+---
+// Clip list with custom controls over native <audio> elements.
+// Without JavaScript each clip falls back to the browser's own audio controls.
+//
+// Other components can control playback by dispatching on document:
+//   new CustomEvent('hv:seek', { detail: { clip: 2, offset: 15 } })   // seconds into that clip's file
+// and the player announces progress with 'hv:time' { clip, offset }.
+import { url } from '../lib/url';
+import { LANG_CODES, toSeconds } from '../lib/content';
+import Value from './Value.astro';
+
+interface Clip {
+  n: number;
+  title: string;
+  start: string;
+  end: string;
+  file: string;
+  language: string;
+}
+interface Props {
+  clips: Clip[];
+  storyId: string;
+}
+const { clips, storyId } = Astro.props;
+---
+
+<ol class="clips" data-player data-story={storyId}>
+  {clips.map((c) => (
+    <li class="clip" data-clip={c.n} data-start={toSeconds(c.start)}>
+      <div class="clip-head">
+        <span class="clip-n label">Clip {c.n}</span>
+        <span class="clip-title"><Value value={c.title} /></span>
+        <span class="clip-range meta">{c.start}–{c.end} · {c.language}</span>
+      </div>
+      <audio src={url(c.file)} preload="metadata" controls lang={LANG_CODES[c.language]}>
+        <a href={url(c.file)}>Download clip {c.n} (MP3)</a>
+      </audio>
+      <div class="controls" hidden>
+        <button type="button" class="play" aria-label={`Play clip ${c.n}`}>
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor" /></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z" fill="currentColor" /></svg>
+        </button>
+        <label class="visually-hidden" for={`seek-${c.n}`}>Position in clip {c.n}</label>
+        <input class="seek" id={`seek-${c.n}`} type="range" min="0" max="0" step="1" value="0" />
+        <span class="time meta" aria-hidden="true"><span class="cur">0:00</span> / <span class="dur">–:––</span></span>
+      </div>
+      <p class="unavailable meta" hidden>This clip's audio isn't available yet.</p>
+    </li>
+  ))}
+</ol>
+
+<script>
+  const fmt = (s: number) => {
+    if (!Number.isFinite(s)) return '–:––';
+    s = Math.max(0, Math.floor(s));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = String(s % 60).padStart(2, '0');
+    return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+  };
+  const spoken = (s: number) => {
+    s = Math.floor(s);
+    const m = Math.floor(s / 60), sec = s % 60;
+    return m ? `${m} minute${m === 1 ? '' : 's'} ${sec} second${sec === 1 ? '' : 's'}` : `${sec} second${sec === 1 ? '' : 's'}`;
+  };
+
+  for (const player of document.querySelectorAll<HTMLOListElement>('[data-player]')) {
+    const rows = [...player.querySelectorAll<HTMLLIElement>('.clip')].map((li) => {
+      const audio = li.querySelector('audio')!;
+      const controls = li.querySelector<HTMLDivElement>('.controls')!;
+      const play = li.querySelector<HTMLButtonElement>('.play')!;
+      const seek = li.querySelector<HTMLInputElement>('.seek')!;
+      const cur = li.querySelector('.cur')!;
+      const dur = li.querySelector('.dur')!;
+      const n = Number(li.dataset.clip);
+      return { li, audio, controls, play, seek, cur, dur, n, dragging: false };
+    });
+
+    for (const r of rows) {
+      // Swap native controls for the custom ones
+      r.audio.controls = false;
+      r.audio.hidden = true;
+      r.controls.hidden = false;
+
+      const label = () => `${r.audio.paused ? 'Play' : 'Pause'} clip ${r.n}`;
+      const sync = () => {
+        r.li.classList.toggle('playing', !r.audio.paused);
+        r.play.setAttribute('aria-label', label());
+      };
+      const updateTime = () => {
+        if (!r.dragging) r.seek.value = String(Math.floor(r.audio.currentTime));
+        r.cur.textContent = fmt(r.audio.currentTime);
+        r.seek.setAttribute('aria-valuetext', `${spoken(r.audio.currentTime)} of ${spoken(r.audio.duration || 0)}`);
+      };
+
+      const onMeta = () => {
+        r.seek.max = String(Math.floor(r.audio.duration));
+        r.dur.textContent = fmt(r.audio.duration);
+        updateTime();
+      };
+      r.audio.addEventListener('loadedmetadata', onMeta);
+      // Metadata may already have loaded before this script ran
+      if (r.audio.readyState >= 1) onMeta();
+      r.audio.addEventListener('timeupdate', () => {
+        updateTime();
+        document.dispatchEvent(new CustomEvent('hv:time', { detail: { clip: r.n, offset: r.audio.currentTime } }));
+      });
+      r.audio.addEventListener('play', () => {
+        // Only one clip plays at a time
+        for (const other of rows) if (other !== r && !other.audio.paused) other.audio.pause();
+        sync();
+      });
+      r.audio.addEventListener('pause', sync);
+      r.audio.addEventListener('ended', sync);
+      const onError = () => {
+        r.controls.hidden = true;
+        r.li.querySelector<HTMLParagraphElement>('.unavailable')!.hidden = false;
+        r.li.classList.add('is-unavailable');
+      };
+      r.audio.addEventListener('error', onError);
+      if (r.audio.error) onError();
+
+      r.play.addEventListener('click', () => (r.audio.paused ? r.audio.play() : r.audio.pause()));
+      r.seek.addEventListener('input', () => {
+        r.dragging = true;
+        r.cur.textContent = fmt(Number(r.seek.value));
+      });
+      r.seek.addEventListener('change', () => {
+        r.audio.currentTime = Number(r.seek.value);
+        r.dragging = false;
+      });
+    }
+
+    document.addEventListener('hv:seek', (e) => {
+      const { clip, offset } = (e as CustomEvent<{ clip: number; offset: number }>).detail;
+      const r = rows.find((x) => x.n === clip);
+      if (!r || r.li.classList.contains('is-unavailable')) return;
+      const go = () => {
+        r.audio.currentTime = Math.max(0, Math.min(offset, (r.audio.duration || offset + 1) - 0.1));
+        r.audio.play();
+      };
+      if (r.audio.readyState >= 1) go();
+      else r.audio.addEventListener('loadedmetadata', go, { once: true });
+      r.li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
+</script>
+
+<style>
+  .clips { list-style: none; padding: 0; display: grid; gap: var(--space-3); }
+  .clip {
+    background: var(--white);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--ink);
+    padding: var(--space-4);
+    display: grid;
+    gap: var(--space-3);
+  }
+  .clip.playing { border-left-color: var(--accent); }
+  .clip-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); }
+  .clip-n { color: var(--accent); }
+  .clip-title { font-weight: 600; }
+  .clip-range { margin-left: auto; }
+  audio { width: 100%; }
+  audio[hidden] { display: none; }
+
+  .controls {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .controls[hidden] { display: none; }
+  .play {
+    width: var(--tap);
+    height: var(--tap);
+    display: grid;
+    place-items: center;
+    background: var(--ink);
+    color: var(--white);
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .play:hover { background: var(--accent); }
+  .play svg { width: 20px; height: 20px; }
+  .icon-pause, .playing .icon-play { display: none; }
+  .playing .icon-pause { display: block; }
+
+  /* Range input styled as a thin progress rule with a square thumb */
+  .seek {
+    width: 100%;
+    min-height: var(--tap);
+    background: transparent;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .seek::-webkit-slider-runnable-track { height: 4px; background: var(--panel); border: 1px solid var(--rule); }
+  .seek::-moz-range-track { height: 4px; background: var(--panel); border: 1px solid var(--rule); }
+  .seek::-moz-range-progress { height: 4px; background: var(--accent); }
+  .seek { -webkit-appearance: none; appearance: none; }
+  .seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    margin-top: -7px;
+    background: var(--accent);
+    border: 2px solid var(--white);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .seek::-moz-range-thumb { width: 14px; height: 14px; background: var(--accent); border: 2px solid var(--white); border-radius: 0; }
+  .time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .is-unavailable { border-left-color: var(--rule); }
+</style>

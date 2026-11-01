@@ -1,0 +1,266 @@
+---
+import { getEntries, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ClipPlayer from '../../components/ClipPlayer.astro';
+import Transcript from '../../components/Transcript.astro';
+import PhotoCard from '../../components/PhotoCard.astro';
+import Value from '../../components/Value.astro';
+import { SITE } from '../../config';
+import { url } from '../../lib/url';
+import { formatDate, getStories, getTranscript, typeLabel, type Story } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const stories = await getStories();
+  return stories.map((story) => ({ params: { id: story.id }, props: { story } }));
+}
+
+const { story } = Astro.props as { story: Story };
+const d = story.data;
+const transcript = await getTranscript(story);
+const photos = await getEntries(d.related_photos);
+const { Content } = await render(story);
+const hasNotes = Boolean(story.body?.trim());
+
+const pageUrl = new URL(url(`/stories/${story.id}/`), Astro.site).toString();
+const isPlaceholder = (v?: string) => !v || /^\[.*\]$/.test(v.trim());
+
+// Citation, roughly following Chicago style for oral history interviews.
+const citation = [
+  `${d.narrator.name}.`,
+  `“${d.title}.”`,
+  d.type === 'family' ? `Family account of ${d.original_witness}.` : '',
+  `Oral history interview by ${d.interviewers.join(' and ')}, ${formatDate(d.interview_date)}, ${d.place_recorded}.`,
+  `${SITE.name}, ${story.id}.`,
+  pageUrl,
+]
+  .filter(Boolean)
+  .join(' ');
+
+type Row = { label: string; value?: string | null };
+const about: Row[] = [
+  { label: 'Archive ID', value: story.id },
+  { label: 'Narrator', value: d.narrator.name },
+  { label: 'Also known as', value: d.narrator.other_names },
+  ...(d.type === 'witness'
+    ? [{ label: 'Age in 1961', value: d.narrator.age_in_1961 != null ? String(d.narrator.age_in_1961) : undefined }]
+    : [
+        { label: 'Original witness', value: d.original_witness },
+        { label: 'Relationship', value: d.relationship_to_witness },
+      ]),
+  { label: 'Lives in', value: d.narrator.residence },
+  { label: 'In 1961', value: `${d.location_1961} (${d.district} District)` },
+  { label: 'Interviewed by', value: d.interviewers.join(', ') },
+  { label: 'Interview date', value: formatDate(d.interview_date) },
+  { label: 'Recorded', value: d.place_recorded },
+  { label: 'Languages', value: d.languages.join(', ') },
+  { label: 'Transcribed by', value: d.transcribed_by },
+  { label: 'Translated by', value: d.translated_by },
+  { label: 'Rights', value: d.rights },
+  { label: 'Published', value: formatDate(d.published) },
+];
+const shownAbout = about.filter((r) => r.value && r.value.trim());
+---
+
+<BaseLayout title={isPlaceholder(d.title) ? story.id : d.title} section="listen" description={d.summary}>
+  <article class="story">
+    <header class="story-head dark">
+      <div class="container">
+        <p class="eyebrow">
+          {typeLabel(d.type)} · <Value value={d.location_1961} /> · {d.languages.join(', ')}
+        </p>
+        <h1><Value value={d.title} /></h1>
+        <div class="byline">
+          {d.narrator.portrait && <img class="portrait" src={url(d.narrator.portrait)} alt={`Portrait of ${d.narrator.name}`} width="96" height="96" />}
+          <div>
+            <p class="narrator">
+              <Value value={d.narrator.name} />
+              {d.type === 'witness' && d.narrator.age_in_1961 != null && <span class="age">, aged {d.narrator.age_in_1961} in 1961</span>}
+            </p>
+            {d.type === 'family' && (
+              <p class="relation">
+                <Value value={d.relationship_to_witness} /> of <Value value={d.original_witness} />, who lived through the storm
+              </p>
+            )}
+            <p class="meta">Interviewed {formatDate(d.interview_date)} · {story.id}</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container layout">
+      <div class="main">
+        {d.content_warnings.length > 0 && (
+          <aside class="warning" aria-label="Content warning">
+            <p class="label">Content warning</p>
+            <p>
+              This recording includes{' '}
+              {d.content_warnings.map((w, i) => (
+                <>
+                  <Value value={w} />
+                  {i < d.content_warnings.length - 1 ? ', ' : '.'}
+                </>
+              ))}
+            </p>
+          </aside>
+        )}
+
+        <p class="summary"><Value value={d.summary} /></p>
+
+        <section class="block" aria-labelledby="listen-title">
+          <h2 id="listen-title" class="block-title">Listen</h2>
+          <ClipPlayer clips={d.clips} storyId={story.id} />
+        </section>
+
+        <section class="block" aria-labelledby="transcript-title">
+          <h2 id="transcript-title" class="block-title">Transcript</h2>
+          <p class="meta hint">Select a timestamp to play the recording from that point.</p>
+          <Transcript transcript={transcript.data} clips={d.clips} />
+        </section>
+
+        {hasNotes && (
+          <section class="block notes" aria-labelledby="notes-title">
+            <h2 id="notes-title" class="block-title">Notes</h2>
+            <Content />
+          </section>
+        )}
+
+        {photos.length > 0 && (
+          <section class="block" aria-labelledby="photos-title">
+            <h2 id="photos-title" class="block-title">Related photographs</h2>
+            <ul class="photo-grid">
+              {photos.map((p) => (
+                <li>
+                  <PhotoCard href={url(`/photographs/${p.id}/`)} image={url(p.data.image)} title={p.data.title} date={p.data.date} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      <aside class="sidebar" aria-label="About this recording">
+        <section class="side-card">
+          <h2 class="side-title label">About this recording</h2>
+          <dl>
+            {shownAbout.map((r) => (
+              <div>
+                <dt class="label">{r.label}</dt>
+                <dd><Value value={r.value} /></dd>
+              </div>
+            ))}
+          </dl>
+          {(d.subjects.length > 0 || d.places.length > 0) && (
+            <div class="tags">
+              {d.subjects.length > 0 && (
+                <>
+                  <p class="label">Subjects</p>
+                  <ul>{d.subjects.map((s) => <li><Value value={s} /></li>)}</ul>
+                </>
+              )}
+              {d.places.length > 0 && (
+                <>
+                  <p class="label">Places</p>
+                  <ul>{d.places.map((s) => <li><Value value={s} /></li>)}</ul>
+                </>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section class="side-card">
+          <h2 class="side-title label">Cite this story</h2>
+          <p class="citation" id="citation">{citation}</p>
+          <button type="button" class="btn btn-ghost copy" data-copy="#citation">Copy citation</button>
+          <p class="copy-status meta" role="status"></p>
+        </section>
+
+        <section class="side-card cta">
+          <h2 class="side-title label">Share a story</h2>
+          <p>Do you or your family remember Hattie? We would like to record your story too.</p>
+          <a class="btn" href={url('/get-involved/')}>Get involved</a>
+        </section>
+      </aside>
+    </div>
+  </article>
+</BaseLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+    const status = btn.parentElement?.querySelector('.copy-status');
+    btn.addEventListener('click', async () => {
+      const text = document.querySelector(btn.dataset.copy!)?.textContent?.trim() ?? '';
+      try {
+        await navigator.clipboard.writeText(text);
+        if (status) status.textContent = 'Citation copied.';
+      } catch {
+        if (status) status.textContent = 'Copy failed. Select the text above to copy it.';
+      }
+    });
+  });
+</script>
+
+<style>
+  .story-head { padding-block: var(--space-7) var(--space-6); }
+  .story-head h1 { margin-top: var(--space-3); font-size: var(--step-4); }
+  .byline { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-5); }
+  .portrait { width: 96px; height: 96px; object-fit: cover; border: 2px solid var(--on-ink); }
+  .narrator { font-size: var(--step-1); font-weight: 600; color: var(--white); }
+  .age { font-weight: 400; color: var(--on-ink); }
+  .relation { color: var(--on-ink); }
+  .story-head .meta { margin-top: var(--space-1); }
+
+  .layout {
+    display: grid;
+    gap: var(--space-7);
+    padding-block: var(--space-7) var(--space-8);
+  }
+  @media (min-width: 60rem) {
+    .layout { grid-template-columns: minmax(0, 1fr) 20rem; }
+    .sidebar { position: sticky; top: var(--space-4); align-self: start; max-height: calc(100vh - 2rem); overflow-y: auto; }
+  }
+
+  .warning {
+    background: #FBEDE4;
+    border-left: 4px solid var(--accent);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+  }
+  .warning .label { color: var(--accent); margin-bottom: var(--space-1); }
+
+  .summary { font-size: var(--step-1); line-height: 1.5; }
+  .block { margin-top: var(--space-7); }
+  .block-title {
+    font-size: var(--step-2);
+    border-top: 4px solid var(--ink);
+    padding-top: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  .hint { margin-bottom: var(--space-4); }
+  .notes :global(p) { max-width: var(--measure); }
+
+  .photo-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  }
+
+  /* Sidebar */
+  .sidebar { display: grid; gap: var(--space-5); }
+  .side-card { background: var(--white); border: 1px solid var(--rule); border-top: 3px solid var(--ink); padding: var(--space-5); }
+  .side-title { color: var(--accent); margin-bottom: var(--space-3); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); }
+  dl { display: grid; gap: var(--space-3); }
+  dl div { border-bottom: 1px solid var(--rule); padding-bottom: var(--space-2); }
+  dt { color: var(--muted); font-size: 0.75rem; }
+  dd { font-size: var(--step--1); }
+  .tags { margin-top: var(--space-4); }
+  .tags .label { color: var(--muted); font-size: 0.75rem; margin-top: var(--space-3); }
+  .tags ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+  .tags li { background: var(--panel); padding: 2px var(--space-2); font-size: var(--step--1); }
+  .citation { font-size: var(--step--1); line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
+  .copy { margin-top: var(--space-3); }
+  .copy-status { margin-top: var(--space-2); min-height: 1.2em; }
+  .cta { border-top-color: var(--accent); }
+  .cta p { font-size: var(--step--1); margin-bottom: var(--space-3); }
+</style>

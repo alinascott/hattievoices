@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { url } from '../lib/url';
+---
+
+<BaseLayout title="Page not found">
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">Error 404</p>
+      <h1>Page not found</h1>
+      <p class="lede">The page you were looking for isn't here. It may have moved, or the link may be mistyped.</p>
+      <p class="actions">
+        <a class="btn" href={url('/stories/')}>Listen to the stories</a>
+        <a class="btn btn-ghost" href={url('/')}>Go to the homepage</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  h1 { margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+</style>

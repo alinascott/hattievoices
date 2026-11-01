@@ -1,0 +1,165 @@
+---
+import { existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StoryCard from '../../components/StoryCard.astro';
+import Value from '../../components/Value.astro';
+import { url } from '../../lib/url';
+import { getPhotos, getStories, type Photo } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const photos = await getPhotos();
+  return photos.map((photo) => ({ params: { id: photo.id }, props: { photo } }));
+}
+
+const { photo } = Astro.props as { photo: Photo };
+const d = photo.data;
+const { Content } = await render(photo);
+const hasBody = Boolean(photo.body?.trim());
+
+// Stories linked from either side: the photo's related_stories, or a story's related_photos.
+const linked = new Set(d.related_stories.map((r) => r.id));
+const stories = (await getStories()).filter(
+  (s) => linked.has(s.id) || s.data.related_photos.some((r) => r.id === photo.id),
+);
+
+// Size label for the optional full-resolution download
+let download: { href: string; label: string } | undefined;
+if (d.image_original) {
+  const path = join('public', d.image_original);
+  const ext = d.image_original.split('.').pop()?.toUpperCase() ?? 'file';
+  const mb = existsSync(path) ? ` ${(statSync(path).size / 1_000_000).toFixed(1)} MB` : '';
+  download = { href: url(d.image_original), label: `Download original (${ext}${mb ? ',' + mb : ''})` };
+}
+
+const rows: { label: string; value?: string; href?: string }[] = [
+  { label: 'Date', value: d.date },
+  { label: 'Creator', value: d.creator },
+  { label: 'Held by', value: d.lender },
+  { label: 'Source', value: d.source, href: d.source_url || undefined },
+  { label: 'Original or copy', value: d.original_or_copy },
+  { label: 'Rights', value: d.rights },
+  { label: 'Archive ID', value: photo.id },
+].filter((r) => r.value?.trim());
+---
+
+<BaseLayout title={d.title} section="photographs" description={d.caption}>
+  <article class="container photo-page">
+    <nav class="crumbs label" aria-label="Breadcrumb">
+      <a href={url('/photographs/')}>Photographs</a> <span aria-hidden="true">/</span> <span>{photo.id}</span>
+    </nav>
+
+    <div class="layout">
+      <figure class="figure">
+        <a class="image-link" href={url(d.image)} aria-label={`Open the full-size image: ${d.title}`}>
+          <img src={url(d.image)} alt={d.alt} />
+        </a>
+        <figcaption>
+          <p>{d.caption}</p>
+          {d.credit && <p class="credit">{d.credit}</p>}
+        </figcaption>
+      </figure>
+
+      <div class="details">
+        <h1>{d.title}</h1>
+        {hasBody && <div class="body"><Content /></div>}
+
+        <dl>
+          {rows.map((r) => (
+            <div>
+              <dt class="label">{r.label}</dt>
+              <dd>
+                {r.href ? <a href={r.href} rel="noopener">{r.value}</a> : <Value value={r.value} />}
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        {d.explore_url && (
+          <p class="explore">
+            <a class="btn" href={d.explore_url} rel="noopener">
+              {d.explore_label || 'Explore the full item'} <span aria-hidden="true">↗</span>
+              <span class="visually-hidden">(on another website)</span>
+            </a>
+          </p>
+        )}
+
+        <p class="actions">
+          <a class="btn btn-ghost" href={url(d.image)}>View full size</a>
+          {download && <a class="btn btn-ghost" href={download.href} download>{download.label}</a>}
+        </p>
+
+        <p class="meta lend">
+          Do you know more about this photograph, or have others like it?
+          <a href={url('/get-involved/?path=photos')}>Tell us</a>.
+        </p>
+      </div>
+    </div>
+
+    {stories.length > 0 && (
+      <section class="related" aria-labelledby="related-title">
+        <div class="section-head">
+          <h2 id="related-title">Related oral histories</h2>
+        </div>
+        <ul class="card-grid">
+          {stories.map((s) => (
+            <li>
+              <StoryCard
+                href={url(`/stories/${s.id}/`)}
+                title={s.data.title}
+                narrator={s.data.narrator.name}
+                type={s.data.type}
+                place={s.data.location_1961}
+                languages={s.data.languages}
+                summary={s.data.summary}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</BaseLayout>
+
+<style>
+  .photo-page { padding-block: var(--space-5) var(--space-8); }
+  .crumbs { color: var(--muted); margin-bottom: var(--space-5); display: flex; gap: var(--space-2); align-items: center; }
+  .crumbs a { min-height: var(--tap); display: inline-flex; align-items: center; }
+
+  .layout { display: grid; gap: var(--space-6); align-items: start; }
+  @media (min-width: 56rem) {
+    .layout { grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 1fr); gap: var(--space-7); }
+  }
+
+  .figure { background: var(--white); border: 1px solid var(--rule); padding: var(--space-3); }
+  .image-link { display: block; }
+  .figure img { width: 100%; max-height: 85vh; object-fit: contain; background: var(--panel); }
+  figcaption { padding-top: var(--space-3); font-size: var(--step--1); color: var(--muted); }
+  figcaption .credit { margin-top: var(--space-1); font-family: var(--font-mono); font-size: 0.8rem; }
+
+  .details h1 { font-size: var(--step-3); }
+  .body { margin-top: var(--space-4); }
+  dl { margin-top: var(--space-5); border-top: 4px solid var(--ink); }
+  dl div {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--rule);
+  }
+  dt { color: var(--muted); padding-top: 2px; }
+  .explore { margin-top: var(--space-5); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
+  .explore + .actions { margin-top: var(--space-3); }
+  .lend { margin-top: var(--space-5); }
+
+  .related { margin-top: var(--space-8); }
+  .card-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  }
+</style>

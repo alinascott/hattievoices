@@ -1,0 +1,180 @@
+---
+import { SITE } from '../config';
+import { url } from '../lib/url';
+
+interface Props {
+  current?: string;
+}
+const { current } = Astro.props;
+
+const links = [
+  { key: 'listen', label: 'Listen', href: url('/stories/') },
+  { key: 'photographs', label: 'Photographs', href: url('/photographs/') },
+  { key: 'media', label: 'Media', href: url('/media/') },
+  { key: 'about', label: 'About', href: url('/about/') },
+];
+---
+
+<header class="site-header on-ink">
+  <div class="container bar">
+    <a class="brand" href={url('/')}>
+      <span class="brand-name">{SITE.name}</span>
+      <span class="brand-sub">Hurricane Hattie · 1961</span>
+    </a>
+
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" hidden>
+      <span class="menu-bars" aria-hidden="true"></span>
+      Menu
+    </button>
+
+    <nav id="site-nav" class="nav" aria-label="Main">
+      <ul>
+        {links.map((l) => (
+          <li>
+            <a href={l.href} aria-current={current === l.key ? 'page' : undefined}>{l.label}</a>
+          </li>
+        ))}
+        <li>
+          <a class="btn nav-cta" href={url('/get-involved/')} aria-current={current === 'get-involved' ? 'page' : undefined}>
+            Share a story
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<script>
+  // Collapse the nav behind a Menu button on narrow screens.
+  // Without JavaScript the links simply wrap below the site name.
+  const header = document.querySelector('.site-header');
+  const toggle = header?.querySelector<HTMLButtonElement>('.menu-toggle');
+  if (header && toggle) {
+    header.classList.add('js');
+    toggle.hidden = false;
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      header.classList.toggle('open', !open);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && header.classList.contains('open')) {
+        toggle.setAttribute('aria-expanded', 'false');
+        header.classList.remove('open');
+        toggle.focus();
+      }
+    });
+  }
+</script>
+
+<style>
+  .site-header {
+    background: var(--ink);
+    color: var(--on-ink);
+    border-bottom: 1px solid var(--rule-on-ink);
+  }
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    padding-block: var(--space-3);
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--tap);
+    color: var(--white);
+    text-decoration: none;
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    font-stretch: var(--display-stretch);
+    text-transform: uppercase;
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-ink);
+    margin-top: 2px;
+  }
+
+  .nav ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+  }
+  .nav a:not(.btn) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding-inline: var(--space-3);
+    color: var(--white);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+  }
+  .nav a:not(.btn):hover { border-bottom-color: var(--on-ink); }
+  .nav a[aria-current='page']:not(.btn) { border-bottom-color: var(--accent-on-ink); color: var(--accent-on-ink); }
+  .nav-cta { margin-left: var(--space-2); }
+
+  .menu-toggle {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap);
+    min-width: var(--tap);
+    padding-inline: var(--space-3);
+    background: transparent;
+    color: var(--white);
+    border: 1px solid var(--rule-on-ink);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+  .menu-bars,
+  .menu-bars::before,
+  .menu-bars::after {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    position: relative;
+  }
+  .menu-bars::before, .menu-bars::after { content: ''; position: absolute; left: 0; }
+  .menu-bars::before { top: -6px; }
+  .menu-bars::after { top: 6px; }
+
+  @media (max-width: 47.99rem) {
+    .js .menu-toggle:not([hidden]) { display: inline-flex; }
+    .js .nav { display: none; width: 100%; }
+    .js.open .nav { display: block; }
+    .nav { width: 100%; }
+    .js .nav ul {
+      flex-direction: column;
+      align-items: stretch;
+      padding-block: var(--space-2) var(--space-3);
+      border-top: 1px solid var(--rule-on-ink);
+    }
+    .js .nav a:not(.btn) { width: 100%; border-bottom: 1px solid var(--rule-on-ink); }
+    .js .nav-cta { margin: var(--space-3) 0 0; width: 100%; }
+  }
+</style>

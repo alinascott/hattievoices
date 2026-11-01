@@ -1,0 +1,65 @@
+---
+// Shown after the Get involved form is sent. The form's script moves here once
+// FormSubmit confirms delivery; without JavaScript, FormSubmit redirects here via _next.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE } from '../../config';
+import { url } from '../../lib/url';
+---
+
+<BaseLayout title="Thank you" section="get-involved" noindex>
+  <section class="section">
+    <div class="container">
+      <div class="thanks">
+        <p class="eyebrow">Message received</p>
+        <h1 id="thanks-title">Thank you<span data-thanks-name></span></h1>
+        <p class="lede">
+          Your message has reached the {SITE.name} team. We read every message, and we will get in touch using the
+          contact details you gave us to talk about next steps.
+        </p>
+
+        <div class="next card">
+          <h2 class="label">What happens next</h2>
+          <ol>
+            <li>We contact you to talk it through. There is no obligation to go ahead.</li>
+            <li>If you'd like to take part, we arrange an interview in the language you prefer, in person, by phone or by video.</li>
+            <li>Nothing is published until the story has been transcribed and reviewed.</li>
+          </ol>
+          <p class="note">Please don't send recordings. We record and transcribe every interview ourselves.</p>
+        </div>
+
+        <p class="contact">
+          If you'd like to reach us sooner, write to <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+        </p>
+
+        <p class="actions">
+          <a class="btn" href={url('/stories/')}>Listen to the stories</a>
+          <a class="btn btn-ghost" href={url('/')}>Back to the homepage</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // The form leaves the sender's first name in this tab's session storage.
+  try {
+    const name = sessionStorage.getItem('hv-thanks-name');
+    if (name) {
+      document.querySelector('[data-thanks-name]')!.textContent = `, ${name}`;
+      sessionStorage.removeItem('hv-thanks-name');
+    }
+  } catch {}
+</script>
+
+<style>
+  .thanks { max-width: 44rem; }
+  h1 { margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+  .next { margin-top: var(--space-6); border-top-color: var(--accent); }
+  .next h2 { color: var(--accent); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-bottom: var(--space-3); }
+  .next ol { padding-left: 1.4em; display: grid; gap: var(--space-2); }
+  .next li::marker { font-family: var(--font-mono); color: var(--accent); }
+  .note { margin-top: var(--space-4); font-weight: 600; }
+  .contact { margin-top: var(--space-5); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+</style>

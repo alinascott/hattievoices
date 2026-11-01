@@ -1,0 +1,54 @@
+---
+import Value from './Value.astro';
+
+interface Props {
+  href: string;
+  title: string;
+  narrator: string;
+  type: 'witness' | 'family';
+  place: string;
+  languages: string[];
+  quote?: string;
+  summary?: string;
+}
+const { href, title, narrator, type, place, languages, quote, summary } = Astro.props;
+const typeLabel = type === 'witness' ? 'Witness' : 'Family account';
+---
+
+<article class="story-card card">
+  <p class="label kicker">{typeLabel} · <Value value={place} /> · {languages.join(', ')}</p>
+  <h3><a href={href}><Value value={title} /></a></h3>
+  <p class="narrator"><Value value={narrator} /></p>
+  {quote && <blockquote><p><Value value={quote} /></p></blockquote>}
+  {!quote && summary && <p class="summary"><Value value={summary} /></p>}
+  <p class="more label" aria-hidden="true">Listen →</p>
+</article>
+
+<style>
+  .story-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    height: 100%;
+  }
+  .kicker { color: var(--accent); }
+  h3 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  /* Whole card is clickable through the heading link */
+  h3 a::after { content: ''; position: absolute; inset: 0; }
+  .story-card:hover h3 a { text-decoration: underline; text-decoration-thickness: 2px; }
+  .story-card:focus-within { outline: var(--focus); outline-offset: 2px; }
+  h3 a:focus-visible { outline: none; }
+  .narrator { font-weight: 600; }
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: var(--space-4);
+    font-style: italic;
+    color: var(--text);
+  }
+  .summary { color: var(--muted); }
+  .more { margin-top: auto; color: var(--accent); }
+</style>

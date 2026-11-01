@@ -1,0 +1,85 @@
+---
+import { getCollection } from 'astro:content';
+
+const sorted = (await getCollection('storms')).map((s) => s.data).sort((a, b) => a.year - b.year);
+---
+
+<ol class="timeline" style={`--count: ${sorted.length}`}>
+  {sorted.map((s) => (
+    <li class:list={['storm', s.status]}>
+      <span class="year">{s.year}</span>
+      <span class="name">{s.name}</span>
+      <span class="status label">{s.status === 'collecting' ? 'Now collecting' : 'Future chapter'}</span>
+      <p class="blurb">{s.blurb}</p>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .timeline {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+    position: relative;
+  }
+  /* The rule the storms sit on */
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 3.4rem;
+    border-top: 2px solid var(--rule-on-ink);
+  }
+  .storm {
+    position: relative;
+    padding: 0 var(--space-3) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .storm::before {
+    content: '';
+    order: 1;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--on-ink);
+    position: relative;
+    z-index: 1;
+  }
+  .year {
+    order: 0;
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    font-stretch: var(--display-stretch);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--on-ink);
+    height: 2.6rem;
+    display: flex;
+    align-items: flex-end;
+  }
+  .name, .status, .blurb { order: 2; }
+  .name { font-weight: 600; color: var(--white); }
+  .status { color: var(--on-ink); }
+  .blurb { font-size: var(--step--1); color: var(--on-ink); }
+
+  .collecting::before { background: var(--accent-on-ink); border-color: var(--accent-on-ink); width: 18px; height: 18px; margin-top: -2px; }
+  .collecting .year { color: var(--accent-on-ink); font-size: 2.75rem; }
+  .collecting .status {
+    align-self: flex-start;
+    background: var(--accent-on-ink);
+    color: var(--ink);
+    padding: 2px var(--space-2);
+  }
+  .future .name, .future .year { opacity: 0.85; }
+
+  @media (max-width: 47.99rem) {
+    .timeline { grid-template-columns: 1fr; gap: var(--space-5); padding-left: var(--space-6); }
+    .timeline::before { top: 0; bottom: 0; left: 6px; right: auto; border-top: 0; border-left: 2px solid var(--rule-on-ink); }
+    .storm::before { position: absolute; left: calc(-1 * var(--space-6)); top: 0.6rem; }
+    .collecting::before { left: calc(-1 * var(--space-6) - 2px); }
+    .year { height: auto; }
+  }
+</style>

@@ -1,0 +1,47 @@
+/* Design tokens. Every colour, font and spacing value used on the site lives here. */
+:root {
+  /* Colour */
+  --ink: #12212B;          /* header, dark sections */
+  --paper: #F1F3F2;        /* page background */
+  --panel: #E3E8E7;
+  --white: #FFFFFF;        /* cards */
+  --text: #1B2A33;
+  --muted: #4A5862;
+  --on-ink: #C9D3D8;       /* light text on ink */
+  --accent: #B4441A;       /* accent on light backgrounds */
+  --accent-on-ink: #F0A27A;
+  --rule: #C3CCCB;         /* hairline rules and card borders */
+  --rule-on-ink: #33464F;
+
+  /* Type */
+  --font-display: 'Archivo', 'Arial Narrow', sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display-stretch: 82%;
+  --display-weight: 800;
+
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  --step-3: clamp(2rem, 1.5rem + 2.2vw, 3rem);
+  --step-4: clamp(2.5rem, 1.6rem + 4vw, 4.75rem);
+
+  /* Space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+
+  /* Layout */
+  --measure: 68ch;
+  --container: 74rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --tap: 44px;             /* minimum touch target */
+  --radius: 2px;
+  --focus: 3px solid var(--accent);
+}

@@ -1,0 +1,93 @@
+---
+import { SITE } from '../config';
+import { url } from '../lib/url';
+import Value from './Value.astro';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer dark">
+  <div class="container grid">
+    <div class="col about">
+      <p class="name">{SITE.name}</p>
+      <p>{SITE.tagline}.</p>
+    </div>
+
+    <div class="col">
+      <h2 class="label">Credits</h2>
+      <ul>
+        <li>Project lead: <Value value={SITE.projectLead} /></li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <h2 class="label">The archive</h2>
+      <ul>
+        <li><a href={url('/stories/')}>Listen to the stories</a></li>
+        <li><a href={url('/photographs/')}>Photographs</a></li>
+        <li><a href={url('/media/')}>Media</a></li>
+        <li><a href={url('/about/')}>Ethics and consent</a></li>
+        <li><a href={url('/get-involved/')}>Share a story</a></li>
+      </ul>
+    </div>
+
+    <div class="col">
+      <h2 class="label">Contact</h2>
+      <ul>
+        <li><a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a></li>
+        <li><a href={url('/get-involved/')}>Get involved</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container base meta">
+    <p>&copy; {year} {SITE.name}. Recordings and photographs remain the property of their narrators, lenders and rights holders.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding-top: var(--space-7);
+    border-top: 6px solid var(--accent-on-ink);
+  }
+  .grid {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+  .about { grid-column: span 1; }
+  @media (min-width: 60rem) {
+    .grid { grid-template-columns: 1.6fr 1fr 1fr 1fr; }
+  }
+  .name {
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    font-stretch: var(--display-stretch);
+    text-transform: uppercase;
+    font-size: 1.75rem;
+    line-height: 1;
+    color: var(--white);
+    margin-bottom: var(--space-3);
+  }
+  .about p + p { margin-top: var(--space-3); }
+  h2.label {
+    font-size: var(--step--1);
+    font-stretch: normal;
+    color: var(--accent-on-ink);
+    border-bottom: 1px solid var(--rule-on-ink);
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  ul { list-style: none; padding: 0; }
+  li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+  }
+  li:not(:has(a)) { padding-block: var(--space-2); }
+  .placeholder { background: transparent; outline-color: var(--accent-on-ink); }
+  .base {
+    margin-top: var(--space-7);
+    padding-block: var(--space-5);
+    border-top: 1px solid var(--rule-on-ink);
+  }
+</style>

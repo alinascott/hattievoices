@@ -1,0 +1,41 @@
+---
+interface Props {
+  href: string;
+  title: string;
+  kind: string;
+  date: string;
+  creator: string;
+  platform: string;
+  duration?: string;
+  summary: string;
+  embedded: boolean;
+}
+const { href, title, kind, date, creator, platform, duration, summary, embedded } = Astro.props;
+---
+
+<article class="media-card card">
+  <p class="label kicker">{kind} · {date}{duration && ` · ${duration}`}</p>
+  <h3><a href={href}>{title}</a></h3>
+  <p class="creator">{creator}</p>
+  <p class="summary">{summary}</p>
+  <p class="where label" aria-hidden="true">{embedded ? 'Watch here →' : `Watch on ${platform} ↗`}</p>
+</article>
+
+<style>
+  .media-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    height: 100%;
+  }
+  .kicker { color: var(--accent); }
+  h3 a { color: var(--text); text-decoration: none; }
+  h3 a::after { content: ''; position: absolute; inset: 0; }
+  .media-card:hover h3 a { text-decoration: underline; text-decoration-thickness: 2px; }
+  .media-card:focus-within { outline: var(--focus); outline-offset: 2px; }
+  h3 a:focus-visible { outline: none; }
+  .creator { font-weight: 600; }
+  .summary { color: var(--muted); font-size: var(--step--1); }
+  .where { margin-top: auto; color: var(--accent); }
+</style>
