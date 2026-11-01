@@ -13,6 +13,9 @@ export const SITE = {
   /** Shown in the footer, homepage and About page. */
   projectLead: 'Alina Scott, PhD',
 
+  /** Where the project lead's name links to. */
+  projectLeadUrl: 'https://alinascott.github.io/portfolio/',
+
   /**
    * Where the Get involved form is sent. FormSubmit (formsubmit.co) forwards each
    * submission by email to hattievoices@gmail.com. The form is activated, and this is

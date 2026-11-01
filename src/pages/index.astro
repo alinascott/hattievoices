@@ -9,11 +9,12 @@ import { url } from '../lib/url';
 import Value from '../components/Value.astro';
 import { getFeaturedStories, getMedia, getPhotos } from '../lib/content';
 
-const facts = [
-  { figure: '31 Oct 1961', text: 'Hattie came ashore on 31 October 1961.' },
-  { figure: '14 ft', text: 'A storm tide of up to 14 feet near Belize City.' },
-  { figure: 'Damage', text: 'The hurricane caused catastrophic damage throughout the region, leaving thousands homeless and hundreds dead.' },
-  { figure: 'Belmopan', text: 'The government later moved the capital inland, to Belmopan.' },
+// Add a `source` to any fact to show a citation line under it, e.g. source: 'Friesen, 1964'.
+const facts: { figure: string; text: string; source?: string }[] = [
+  { figure: '31 Oct 1961', text: 'Hattie came ashore in British Honduras.' },
+  { figure: '14 ft', text: 'Storm tide at its highest, near Belize City.' },
+  { figure: 'Hundreds', text: 'lost their lives, and thousands were left homeless.' },
+  { figure: 'Belmopan', text: 'The capital was later moved inland.' },
 ];
 
 const featured = await getFeaturedStories(3);
@@ -24,11 +25,19 @@ const panel = allPhotos.find((p) => p.id === 'PH-1961-005');
 const media = (await getMedia()).slice(0, 3);
 
 const steps = [
-  { title: 'Get in touch', text: 'You tell us about yourself or a relative through the form or by email.' },
-  { title: 'Record', text: 'We arrange an interview in the language the narrator prefers, in person, by phone or by video.' },
-  { title: 'Transcribe', text: 'Volunteers transcribe the recording and, where needed, translate it into English.' },
-  { title: 'Publish', text: 'After review by a historian, the project lead adds the story to this archive, credited by name.' },
+  { icon: 'mail', title: 'Get in touch', text: 'You tell us about yourself or a relative through the form or by email.' },
+  { icon: 'mic', title: 'Record', text: 'We arrange an interview in the language the narrator prefers, in person, by phone or by video.' },
+  { icon: 'pen', title: 'Transcribe', text: 'Volunteers transcribe the recording and, where needed, translate it into English.' },
+  { icon: 'book', title: 'Publish', text: 'After review by a historian, the project lead adds the story to this archive, credited by name.' },
 ];
+
+// Simple line icons (24×24, stroke only) for the process steps.
+const icons: Record<string, string> = {
+  mail: '<rect x="3" y="5" width="18" height="14" rx="1"/><path d="m3 6 9 7 9-7"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>',
+  book: '<path d="M4 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/>',
+};
 ---
 
 <BaseLayout>
@@ -43,6 +52,7 @@ const steps = [
           <li>
             <span class="figure">{f.figure}</span>
             <span class="fact-text">{f.text}</span>
+            {f.source && <span class="fact-source">Source: {f.source}</span>}
           </li>
         ))}
       </ul>
@@ -69,7 +79,7 @@ const steps = [
           <p><a href={url('/about/')}>How we work: ethics and consent</a></p>
         </div>
         <dl class="about-facts">
-          <div><dt class="label">Project lead</dt><dd><Value value={SITE.projectLead} /></dd></div>
+          <div><dt class="label">Project lead</dt><dd><a href={SITE.projectLeadUrl} rel="noopener">{SITE.projectLead}</a></dd></div>
         </dl>
       </div>
     </div>
@@ -84,15 +94,21 @@ const steps = [
       <ol class="steps">
         {steps.map((s, i) => (
           <li>
-            <span class="step-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <span class="step-marker">
+              <span class="step-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={icons[s.icon]} />
+              </span>
+              <span class="step-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            </span>
             <h3>{s.title}</h3>
             <p>{s.text}</p>
           </li>
         ))}
       </ol>
       <p class="steps-note">
-        Nothing sent to us appears on this site automatically. <a href={url('/get-involved/')}>Start with step one.</a>
+        Nothing sent to us appears on this site automatically.
       </p>
+      <p><a class="btn" href={url('/get-involved/')}>Start with step one</a></p>
     </div>
   </section>
 
@@ -116,10 +132,10 @@ const steps = [
   )}
 
   <!-- Featured voices -->
-  <section class="section" aria-labelledby="voices-title">
+  <section class="section voices" aria-labelledby="voices-title">
     <div class="container">
       <div class="section-head">
-        <h2 id="voices-title">Featured voices</h2>
+        <h2 id="voices-title"><span class="quote-mark" aria-hidden="true">“</span>Featured voices</h2>
         <a class="label" href={url('/stories/')}>All stories →</a>
       </div>
       {featured.length > 0 ? (
@@ -140,7 +156,10 @@ const steps = [
           ))}
         </ul>
       ) : (
-        <p>The first stories are being recorded now. <a href={url('/get-involved/')}>Share yours.</a></p>
+        <div class="pending">
+          <p><em>The first stories are being recorded now. <a href={url('/get-involved/')}>Share yours.</a></em></p>
+          <a class="btn" href={url('/get-involved/')}>Share a story</a>
+        </div>
       )}
     </div>
   </section>
@@ -152,24 +171,58 @@ const steps = [
         <h2 id="photos-title">Photographs</h2>
         <a class="label" href={url('/photographs/')}>Explore gallery →</a>
       </div>
-      <ul class="thumbs">
-        {photos.map((p) => (
-          <li>
-            <a href={url(`/photographs/${p.id}/`)}>
-              <img src={url(p.data.image)} alt={p.data.title} loading="lazy" decoding="async" />
+      {photos.length > 0 && (
+        <div class="lead" data-photo-lead>
+          <div class="lead-main" aria-live="polite">
+            <a class="lead-link" href={url(`/photographs/${photos[0].id}/`)}>
+              <img src={url(photos[0].data.image)} alt={photos[0].data.alt ?? photos[0].data.title} decoding="async" />
             </a>
-          </li>
-        ))}
-      </ul>
-      <div class="photos-actions">
-        <a class="btn" href={url('/photographs/')}>Explore gallery</a>
-        <p>
-          Do you have pictures from 1961? Snapshots, cuttings, letters and documents all help tell the story.
-          <a href={url('/get-involved/?path=photos')}>Lend photographs</a>
-        </p>
-      </div>
+            <p class="eyebrow">Selected photograph</p>
+            <p class="lead-title">{photos[0].data.title}</p>
+          </div>
+          <ul class="thumbs">
+            {photos.map((p, i) => (
+              <li>
+                <button
+                  type="button"
+                  aria-pressed={i === 0 ? 'true' : 'false'}
+                  aria-label={p.data.title}
+                  data-href={url(`/photographs/${p.id}/`)}
+                  data-src={url(p.data.image)}
+                  data-alt={p.data.alt ?? p.data.title}
+                  data-title={p.data.title}
+                >
+                  <img src={url(p.data.image)} alt="" loading="lazy" decoding="async" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   </section>
+
+  <script>
+    // Clicking a thumbnail swaps the large photograph. Without JavaScript the large photo
+    // links to its record, and the gallery link above reaches every photograph.
+    const lead = document.querySelector('[data-photo-lead]');
+    if (lead) {
+      const img = lead.querySelector<HTMLImageElement>('.lead-link img');
+      const link = lead.querySelector<HTMLAnchorElement>('.lead-link');
+      const title = lead.querySelector('.lead-title');
+      const buttons = lead.querySelectorAll<HTMLButtonElement>('.thumbs button');
+      buttons.forEach((b) =>
+        b.addEventListener('click', () => {
+          if (!img || !link || !title) return;
+          img.src = b.dataset.src ?? '';
+          img.alt = b.dataset.alt ?? '';
+          link.href = b.dataset.href ?? '';
+          title.textContent = b.dataset.title ?? '';
+          buttons.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+        }),
+      );
+    }
+  </script>
 
   <!-- Video and news -->
   {media.length > 0 && (
@@ -215,16 +268,17 @@ const steps = [
 <style>
   /* At a glance */
   .glance {
-    background: var(--panel);
+    background: var(--white);
     border-bottom: 1px solid var(--rule);
-    padding-block: var(--space-6);
+    border-top: 4px solid var(--accent);
+    padding-block: var(--space-7);
   }
   .glance-title { color: var(--accent); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-bottom: var(--space-4); }
   .facts {
     list-style: none;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
     gap: var(--space-5);
   }
   .facts li {
@@ -241,9 +295,11 @@ const steps = [
     text-transform: uppercase;
     font-size: var(--step-3);
     line-height: 1;
-    color: var(--ink);
+    white-space: nowrap;
+    color: var(--accent);
   }
-  .fact-text { color: var(--muted); font-size: var(--step--1); line-height: 1.5; }
+  .fact-text { color: var(--text); font-size: var(--step-0); line-height: 1.45; }
+  .fact-source { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
 
   /* About */
   .about-grid {
@@ -261,6 +317,22 @@ const steps = [
   .about-facts dd { margin-top: var(--space-1); font-weight: 600; justify-self: start; display: inline-block; }
 
   .panel { background: var(--panel); }
+
+  /* Featured voices: warm background so it stands apart from the cool sections around it */
+  .voices { background: var(--sand); border-block: 1px solid #E4CDB9; }
+  .voices h2 { display: flex; align-items: baseline; gap: var(--space-2); }
+  .quote-mark { color: var(--accent); font-size: 1.6em; line-height: 0.6; }
+  .pending {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    padding: var(--space-6);
+    border: 2px dashed var(--accent);
+    background: rgba(255, 255, 255, 0.5);
+    font-size: var(--step-1);
+  }
   .section-head a.label { color: var(--accent); min-height: var(--tap); display: inline-flex; align-items: center; }
 
   /* Cards */
@@ -283,28 +355,35 @@ const steps = [
   .image-panel figcaption > * + * { margin-top: var(--space-3); }
   .panel-caption { font-size: var(--step-1); line-height: 1.5; color: var(--white); }
 
-  /* Photographs: compact preview */
+  /* Photographs: lead photo with a thumbnail strip */
+  .lead { display: grid; gap: var(--space-5); }
+  @media (min-width: 52rem) {
+    .lead { grid-template-columns: 2fr 1fr; align-items: start; }
+  }
+  .lead-main { background: var(--ink); color: var(--white); padding: var(--space-4); }
+  .lead-link { display: block; background: var(--white); padding: 6px; }
+  .lead-link img { display: block; width: 100%; max-height: 26rem; object-fit: contain; }
+  .lead-main .eyebrow { margin-top: var(--space-3); color: var(--accent-on-ink); }
+  .lead-title { margin-top: var(--space-1); line-height: 1.5; }
   .thumbs {
     list-style: none;
     padding: 0;
     display: grid;
-    gap: var(--space-3);
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+    gap: var(--space-2);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 5rem), 1fr));
   }
-  @media (max-width: 40rem) {
-    .thumbs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+  .thumbs button {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 3px;
+    background: var(--white);
+    border: 2px solid var(--rule);
+    cursor: pointer;
   }
-  .thumbs a { display: block; aspect-ratio: 1; background: var(--white); border: 1px solid var(--rule); padding: 4px; }
-  .thumbs a:hover { border-color: var(--ink); }
+  .thumbs button:hover { border-color: var(--ink); }
+  .thumbs button[aria-pressed='true'] { border-color: var(--accent); }
   .thumbs img { width: 100%; height: 100%; object-fit: cover; }
-  .photos-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-4) var(--space-6);
-    margin-top: var(--space-5);
-  }
-  .photos-actions p { flex: 1 1 20rem; font-size: var(--step--1); color: var(--muted); }
 
   /* Process */
   .steps {
@@ -314,25 +393,36 @@ const steps = [
     gap: var(--space-5) var(--space-7);
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   }
-  .steps li {
-    border-top: 3px solid var(--ink);
-    padding-top: var(--space-3);
-    position: relative;
-  }
-  .steps li:not(:last-child)::after {
-    content: '→';
+  .steps li { position: relative; }
+  /* One continuous line runs behind the step markers. */
+  .steps li::before {
+    content: '';
     position: absolute;
-    right: calc(-1 * var(--space-7) / 2 - 0.3em);
-    top: var(--space-3);
-    color: var(--accent);
-    font-family: var(--font-mono);
+    top: 1.5rem;
+    left: 0;
+    right: calc(-1 * var(--space-7));
+    height: 2px;
+    background: var(--accent);
   }
-  .step-n { font-family: var(--font-mono); color: var(--accent); font-weight: 500; display: block; margin-bottom: var(--space-2); }
+  .steps li:last-child::before { right: 0; background: linear-gradient(to right, var(--accent) 3rem, transparent 3rem); }
+  .step-marker { position: relative; display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+  .step-icon {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--accent-on-ink);
+    flex: none;
+    box-shadow: 0 0 0 6px var(--panel);
+  }
+  .step-n { font-family: var(--font-mono); color: var(--accent); font-weight: 500; background: var(--panel); padding-inline: var(--space-2); position: relative; }
   .steps h3 { margin-bottom: var(--space-2); }
   .steps p { color: var(--muted); font-size: var(--step--1); line-height: 1.5; }
-  .steps-note { margin-top: var(--space-6); }
+  .steps-note { margin-block: var(--space-6) var(--space-4); color: var(--muted); }
   @media (max-width: 47.99rem) {
-    .steps li::after { display: none; }
+    .steps li::before { display: none; }
   }
 
   .timeline-section { padding-bottom: var(--space-8); }

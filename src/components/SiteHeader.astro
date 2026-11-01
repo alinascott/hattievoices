@@ -18,8 +18,13 @@ const links = [
 <header class="site-header on-ink">
   <div class="container bar">
     <a class="brand" href={url('/')}>
-      <span class="brand-name">{SITE.name}</span>
-      <span class="brand-sub">Hurricane Hattie · 1961</span>
+      <span class="brand-logo">
+        <img src={url('/images/hattie-voices-logo-dark.png')} alt="" width="560" height="159" />
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">{SITE.name}</span>
+        <span class="brand-sub">Hurricane Hattie · 1961</span>
+      </span>
     </a>
 
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" hidden>
@@ -84,12 +89,16 @@ const links = [
 
   .brand {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center;
+    gap: var(--space-3);
     min-height: var(--tap);
     color: var(--white);
     text-decoration: none;
   }
+  /* Dark-header logo variant: white outline on navy, made to sit on the ink header. */
+  .brand-logo { display: block; flex: none; }
+  .brand-logo img { display: block; width: 5rem; height: auto; }
+  .brand-text { display: flex; flex-direction: column; justify-content: center; }
   .brand-name {
     font-family: var(--font-display);
     font-weight: var(--display-weight);
