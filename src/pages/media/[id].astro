@@ -3,7 +3,7 @@ import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StoryCard from '../../components/StoryCard.astro';
 import { url } from '../../lib/url';
-import { getMedia, getStories, type Media } from '../../lib/content';
+import { getMedia, getStories, TESTIMONY_KIND, type Media } from '../../lib/content';
 
 export async function getStaticPaths() {
   const items = await getMedia();
@@ -12,6 +12,8 @@ export async function getStaticPaths() {
 
 const { item } = Astro.props as { item: Media };
 const d = item.data;
+// Survivor testimonies live under Listen; everything else under Media
+const isTestimony = d.kind === TESTIMONY_KIND;
 const { Content } = await render(item);
 const hasBody = Boolean(item.body?.trim());
 
@@ -29,10 +31,10 @@ const rows = [
 ].filter((r) => r.value?.trim());
 ---
 
-<BaseLayout title={d.title} section="media" description={d.summary}>
+<BaseLayout title={d.title} section={isTestimony ? 'listen' : 'media'} description={d.summary}>
   <article class="container media-page">
     <nav class="crumbs label" aria-label="Breadcrumb">
-      <a href={url('/media/')}>Media</a> <span aria-hidden="true">/</span> <span>{item.id}</span>
+      <a href={url(isTestimony ? '/stories/' : '/media/')}>{isTestimony ? 'Listen' : 'Media'}</a> <span aria-hidden="true">/</span> <span>{item.id}</span>
     </nav>
 
     <header class="head">

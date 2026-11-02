@@ -2,9 +2,10 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import MediaCard from '../../components/MediaCard.astro';
 import { url } from '../../lib/url';
-import { getMedia } from '../../lib/content';
+import { getMedia, TESTIMONY_KIND } from '../../lib/content';
 
-const items = await getMedia();
+// Survivor testimonies are shown on the Listen page
+const items = (await getMedia()).filter((m) => m.data.kind !== TESTIMONY_KIND);
 ---
 
 <BaseLayout title="Media" section="media" description="Newsreels, news reports and other video about Hurricane Hattie.">
@@ -17,6 +18,7 @@ const items = await getMedia();
           Newsreels and news reports about Hurricane Hattie, from footage filmed in 1961 to anniversary coverage. Each
           is credited to the people who made it and stays with its publisher; we embed or link to it rather than copy it.
         </p>
+        <p class="see-also">Looking for survivors' own words? See the <a href={url('/stories/')}>survivor testimonies on the Listen page</a>.</p>
       </header>
 
       <p class="count label">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
@@ -50,6 +52,7 @@ const items = await getMedia();
   .page-head { margin-bottom: var(--space-6); }
   .page-head h1 { margin-top: var(--space-2); }
   .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+  .see-also { margin-top: var(--space-4); }
   .count { color: var(--muted); margin-bottom: var(--space-4); }
   .media-grid {
     list-style: none;

@@ -7,7 +7,7 @@ import StormTimeline from '../components/StormTimeline.astro';
 import { SITE } from '../config';
 import { url } from '../lib/url';
 import Value from '../components/Value.astro';
-import { getFeaturedStories, getMedia, getPhotos } from '../lib/content';
+import { getFeaturedStories, getMedia, getPhotos, TESTIMONY_KIND } from '../lib/content';
 
 // Tide gauge illustration: a vertical scale in feet, 0 at y=240 and 14 at y=26 (15.28px a foot),
 // drawn beside a 6-foot person for scale.
@@ -17,7 +17,8 @@ const featured = await getFeaturedStories(3);
 const allPhotos = await getPhotos();
 const photos = allPhotos.slice(0, 6);
 const allMedia = await getMedia();
-const media = allMedia.slice(0, 3);
+// Survivor testimonies have their own group on the Media page, so they stay out of this strip
+const media = allMedia.filter((m) => m.data.kind !== TESTIMONY_KIND).slice(0, 3);
 // Newsreel shown between the process steps and Featured voices
 const video = allMedia.find((m) => m.data.youtube_id === 'OtGhDk3aJCA');
 // Slides for the Photographs viewer; the script reads them from the page
