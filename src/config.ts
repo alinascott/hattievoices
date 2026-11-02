@@ -18,8 +18,12 @@ export const SITE = {
 
   /**
    * Where the Get involved form is sent. FormSubmit (formsubmit.co) forwards each
-   * submission by email to hattievoices@gmail.com. The form is activated, and this is
-   * its private code, so the email address doesn't appear in the page source.
+   * submission by email to hattievoices@gmail.com. This code stands in for the email
+   * address, so the address itself isn't in the form. It is NOT secret: it is visible
+   * in the page source and in this public repository, and anyone can post to it. It
+   * only lets people send to the inbox, never read other people's submissions. The
+   * form's CAPTCHA and hidden spam trap are what keep junk out. If the form is ever
+   * abused, activate a new FormSubmit endpoint and replace this value.
    * Leave empty to disconnect the form.
    */
   formEndpoint: 'https://formsubmit.co/4b13676e185b69e8677dd8fddcf46b25',

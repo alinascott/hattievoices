@@ -34,10 +34,9 @@ const faqs = [
 ];
 
 const endpoint = SITE.formEndpoint;
-// The script sends to FormSubmit's JSON endpoint (https://formsubmit.co/ajax/...) and then
-// moves to the thank-you page. Without JavaScript the form posts normally and FormSubmit
-// redirects to the thank-you page itself via _next, which must be an absolute URL.
-const ajaxEndpoint = endpoint.replace(/^https:\/\/formsubmit\.co\//, 'https://formsubmit.co/ajax/');
+// The form posts normally to FormSubmit, which shows its CAPTCHA (FormSubmit only offers a
+// CAPTCHA for normal posts, not for background/AJAX sends) and then redirects to the
+// thank-you page via _next, which must be an absolute URL.
 const thanksPath = url('/get-involved/thank-you/');
 const thanksUrl = new URL(thanksPath, Astro.site).toString();
 ---
@@ -67,7 +66,6 @@ const thanksUrl = new URL(thanksPath, Astro.site).toString();
           class="interest-form"
           action={endpoint || undefined}
           method="POST"
-          data-endpoint={ajaxEndpoint}
           data-thanks={thanksPath}
           data-contact={SITE.contactEmail}
           data-site-name={SITE.name}
@@ -77,6 +75,7 @@ const thanksUrl = new URL(thanksPath, Astro.site).toString();
           <input type="hidden" name="_subject" value={`${SITE.name}: new interest form`} />
           <input type="hidden" name="_template" value="table" />
           <input type="hidden" name="_next" value={thanksUrl} />
+          <input type="hidden" name="_captcha" value="true" />
           <!-- Spam trap: people never see or fill this -->
           <p class="visually-hidden" aria-hidden="true">
             <label>Leave this empty <input type="text" name="_honey" tabindex="-1" autocomplete="off" /></label>
@@ -152,7 +151,11 @@ const thanksUrl = new URL(thanksPath, Astro.site).toString();
 
           <div class="submit-row">
             <button type="submit" class="btn">Send</button>
-            <p class="hint">Your contact details are only used to arrange an interview. They are never published.</p>
+            <p class="hint">
+              Your contact details are only used to arrange an interview. They are never published.
+              Your answers are sent by email through <a href="https://formsubmit.co" rel="noopener">FormSubmit</a>.
+              You may be asked to confirm you are not a robot.
+            </p>
           </div>
         </form>
       </div>
@@ -177,7 +180,10 @@ const thanksUrl = new URL(thanksPath, Astro.site).toString();
   const form = document.querySelector<HTMLFormElement>('#interest-form')!;
   const errors = document.querySelector<HTMLDivElement>('#form-errors')!;
   const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-  const endpoint = form.dataset.endpoint;
+  const endpoint = form.getAttribute('action');
+
+  // Coming back with the Back button restores the renamed fields below, so start fresh
+  window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 
   // ---------- Show only the fields that fit the chosen path ----------
   const showFor = [...form.querySelectorAll<HTMLElement>('[data-show-for]')];
@@ -248,41 +254,27 @@ const thanksUrl = new URL(thanksPath, Astro.site).toString();
       return;
     }
 
-    // Label each answer with its question, so the email reads clearly
-    const data = new FormData(form);
+    // Label each answer with its question, so the email reads clearly. The fields are
+    // renamed in place because the page is about to hand over to FormSubmit's CAPTCHA.
     const chosen = form.querySelector<HTMLInputElement>('input[name="path"]:checked');
-    const pathTitle = chosen?.labels?.[0]?.querySelector('.path-title')?.textContent?.trim() ?? String(data.get('path'));
-    const payload: Record<string, string> = {};
-    for (const [key, value] of data) {
-      if (key.startsWith('_')) { payload[key] = String(value); continue; }
-      if (key === 'path') { payload['What they would like to do'] = pathTitle; continue; }
-      if (!String(value).trim()) continue; // leave unanswered questions out of the email
-      const label = form.querySelector(`label[for="${key}"]`)?.textContent?.replace('(required)', '').trim() || key;
-      payload[label] = String(value);
+    const pathTitle = chosen?.labels?.[0]?.querySelector('.path-title')?.textContent?.trim() ?? String(chosen?.value);
+    const firstName = (form.elements.namedItem('name') as HTMLInputElement).value.trim().split(/\s+/)[0];
+    for (const el of form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')) {
+      if (el.disabled || el.name.startsWith('_')) continue;
+      if (el.name === 'path') {
+        if ((el as HTMLInputElement).checked) { el.name = 'What they would like to do'; el.value = pathTitle; }
+        else el.disabled = true;
+        continue;
+      }
+      if (el.type !== 'checkbox' && !el.value.trim()) { el.disabled = true; continue; } // leave unanswered questions out
+      el.name = form.querySelector(`label[for="${el.id}"]`)?.textContent?.replace('(required)', '').trim() || el.name;
     }
-    payload._subject = `${form.dataset.siteName}: ${pathTitle}`;
+    (form.elements.namedItem('_subject') as HTMLInputElement).value = `${form.dataset.siteName}: ${pathTitle}`;
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending…';
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = await res.json().catch(() => ({}));
-      // FormSubmit answers { success: "true" } or { success: "false", message }
-      if (!res.ok || String(result.success) !== 'true') throw new Error(result.message || String(res.status));
-      const firstName = String(data.get('name') ?? '').trim().split(/\s+/)[0];
-      try { sessionStorage.setItem('hv-thanks-name', firstName); } catch {}
-      location.assign(form.dataset.thanks!);
-    } catch (err) {
-      console.error('Form not sent:', err);
-      showErrors([`Sorry, your message could not be sent. Please try again in a moment, or email ${contact} instead.`], undefined, 'Not sent');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Send';
-    }
+    try { sessionStorage.setItem('hv-thanks-name', firstName); } catch {}
+    form.submit();
   });
 </script>
 
