@@ -1,11 +1,19 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StoryCard from '../../components/StoryCard.astro';
+import MediaCard from '../../components/MediaCard.astro';
 import { DISTRICTS, LANGUAGES } from '../../config';
 import { url } from '../../lib/url';
-import { getStories, getTranscript } from '../../lib/content';
+import { getMedia, getStories, getTranscript, TESTIMONY_KIND } from '../../lib/content';
 
 const stories = await getStories();
+
+// Survivor testimonies published by the Belize National Library Service Information System.
+// They stay with the library on YouTube; the site embeds them from the Media records.
+const testimonies = (await getMedia()).filter((m) => m.data.kind === TESTIMONY_KIND);
+const playlist = 'https://www.youtube.com/playlist?list=PLCpVxEiYnQTKgYQ-vdYpvROu2akn0tjsx';
+// Show our own interviews first once there are some; until then the testimonies lead
+const storiesFirst = stories.length > 0;
 
 // Text the search box looks through: title, summary, narrator and the shared
 // parts of the transcript (withheld passages are never included).
@@ -34,10 +42,42 @@ const index = await Promise.all(
         <h1>Listen</h1>
         <p class="lede">
           Oral histories of Hurricane Hattie, recorded with the people who lived through it and with the families who
-          carry their stories.
+          carry their stories, alongside survivor testimonies from the Belize National Library Service.
         </p>
       </header>
 
+      <div class="sections">
+      {testimonies.length > 0 && (
+        <section class="group" style={`order: ${storiesFirst ? 2 : 1}`} aria-labelledby="testimonies-title">
+          <h2 id="testimonies-title">Survivor testimonies</h2>
+          <p class="group-lede">
+            For the 60th anniversary of Hurricane Hattie in 2021, the Belize National Library Service Information
+            System published recorded testimonies from survivors. Each one plays from the library's YouTube channel and
+            stays with the library. <a href={playlist} rel="noopener">See the full playlist on YouTube <span aria-hidden="true">↗</span><span class="visually-hidden">(on another website)</span></a>
+          </p>
+          <p class="count label">{testimonies.length} {testimonies.length === 1 ? 'testimony' : 'testimonies'}</p>
+          <ul class="media-grid">
+            {testimonies.map((m) => (
+              <li>
+                <MediaCard
+                  href={url(`/media/${m.id}/`)}
+                  title={m.data.title}
+                  kind={m.data.kind}
+                  date={m.data.date}
+                  creator={m.data.creator}
+                  platform={m.data.platform}
+                  duration={m.data.duration}
+                  summary={m.data.summary}
+                  embedded={Boolean(m.data.youtube_id)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section class="group" style={`order: ${storiesFirst ? 1 : 2}`} aria-labelledby="interviews-title">
+      <h2 id="interviews-title">Hattie Voices interviews</h2>
       {stories.length === 0 ? (
         <div class="coming card">
           <h2 class="empty-title">The first stories are being recorded now</h2>
@@ -126,6 +166,8 @@ const index = await Promise.all(
         </div>
       </div>
       )}
+      </section>
+      </div>
     </div>
   </section>
 
@@ -205,6 +247,17 @@ const index = await Promise.all(
   .page-head { margin-bottom: var(--space-7); }
   .page-head h1 { margin-top: var(--space-2); }
   .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+
+  .sections { display: flex; flex-direction: column; gap: var(--space-8); }
+  .group h2 { border-top: 4px solid var(--ink); padding-top: var(--space-3); margin-bottom: var(--space-4); }
+  .group-lede { max-width: var(--measure); line-height: 1.55; margin-bottom: var(--space-4); }
+  .media-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  }
 
   .archive {
     display: grid;

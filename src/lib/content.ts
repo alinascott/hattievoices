@@ -52,6 +52,9 @@ export async function getPhotos(): Promise<Photo[]> {
 
 export type Media = CollectionEntry<'media'>;
 
+/** Media records with this `kind` are survivor testimonies: grouped on their own on the Media page and kept off the homepage strip. */
+export const TESTIMONY_KIND = 'Survivor testimony';
+
 /** News reports, newsreels and other video, newest first. */
 export async function getMedia(): Promise<Media[]> {
   // Items added on the same day appear newest id first
