@@ -20,9 +20,22 @@ const facts: { figure: string; text: string; source?: string }[] = [
 const featured = await getFeaturedStories(3);
 const allPhotos = await getPhotos();
 const photos = allPhotos.slice(0, 6);
-// Image panel between the process steps and Featured voices
-const panel = allPhotos.find((p) => p.id === 'PH-1961-005');
-const media = (await getMedia()).slice(0, 3);
+const allMedia = await getMedia();
+const media = allMedia.slice(0, 3);
+// Newsreel shown between the process steps and Featured voices
+const video = allMedia.find((m) => m.data.youtube_id === 'OtGhDk3aJCA');
+// Slides for the Photographs viewer; the script reads them from the page
+const slides = photos.map((p) => ({
+  id: p.id,
+  href: url(`/photographs/${p.id}/`),
+  src: url(p.data.image),
+  alt: p.data.alt ?? p.data.title,
+  title: p.data.title,
+  caption: p.data.caption ?? '',
+  date: p.data.date ?? '',
+  credit: p.data.credit ?? '',
+}));
+const slidesJson = JSON.stringify(slides).replace(/</g, '\\u003c');
 
 const steps = [
   { icon: 'mail', title: 'Get in touch', text: 'You tell us about yourself or a relative through the form or by email.' },
@@ -112,19 +125,27 @@ const icons: Record<string, string> = {
     </div>
   </section>
 
-  <!-- Image panel -->
-  {panel && (
-    <section class="image-panel dark" aria-label="From the archive">
+  <!-- Newsreel -->
+  {video && (
+    <section class="video-panel dark" aria-label="From the archive: newsreel">
       <div class="container">
         <figure>
-          <a href={url(`/photographs/${panel.id}/`)} class="panel-link">
-            <img src={url(panel.data.image)} alt={panel.data.alt} loading="lazy" decoding="async" />
-          </a>
+          <div class="frame">
+            <!-- youtube-nocookie.com: YouTube's privacy-enhanced mode, no tracking cookies until play -->
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${video.data.youtube_id}?rel=0`}
+              title={`${video.data.title} (video)`}
+              loading="lazy"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+          </div>
           <figcaption>
             <p class="eyebrow">From the archive</p>
-            <p class="panel-caption">{panel.data.caption}</p>
-            {panel.data.credit && <p class="meta">{panel.data.credit}</p>}
-            <p><a href={url(`/photographs/${panel.id}/`)}>View this record</a></p>
+            <p class="panel-caption">{video.data.title}</p>
+            <p class="meta">{video.data.credit} Played from YouTube.</p>
+            <p><a href={url(`/media/${video.id}/`)}>View this record</a></p>
           </figcaption>
         </figure>
       </div>
@@ -165,62 +186,81 @@ const icons: Record<string, string> = {
   </section>
 
   <!-- Photographs -->
-  <section class="section panel" aria-labelledby="photos-title">
+  <section class="section dark photos-stage" aria-labelledby="photos-title">
     <div class="container">
       <div class="section-head">
         <h2 id="photos-title">Photographs</h2>
         <a class="label" href={url('/photographs/')}>Explore gallery →</a>
       </div>
-      {photos.length > 0 && (
-        <div class="lead" data-photo-lead>
-          <div class="lead-main" aria-live="polite">
-            <a class="lead-link" href={url(`/photographs/${photos[0].id}/`)}>
-              <img src={url(photos[0].data.image)} alt={photos[0].data.alt ?? photos[0].data.title} decoding="async" />
-            </a>
-            <p class="eyebrow">Selected photograph</p>
-            <p class="lead-title">{photos[0].data.title}</p>
+      {slides.length > 0 && (
+        <div data-stage>
+          <div class="stage" tabindex="0" aria-label="Photograph viewer. Use the left and right arrow keys to move between photographs.">
+            <button type="button" class="arrow prev" aria-label="Previous photograph" data-prev hidden>‹</button>
+            <img src={slides[0].src} alt={slides[0].alt} data-img decoding="async" />
+            <button type="button" class="arrow next" aria-label="Next photograph" data-next hidden>›</button>
           </div>
-          <ul class="thumbs">
-            {photos.map((p, i) => (
-              <li>
-                <button
-                  type="button"
-                  aria-pressed={i === 0 ? 'true' : 'false'}
-                  aria-label={p.data.title}
-                  data-href={url(`/photographs/${p.id}/`)}
-                  data-src={url(p.data.image)}
-                  data-alt={p.data.alt ?? p.data.title}
-                  data-title={p.data.title}
-                >
-                  <img src={url(p.data.image)} alt="" loading="lazy" decoding="async" />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div class="stage-cap" aria-live="polite">
+            <div>
+              <p class="mono-line" data-meta>{slides[0].id}{slides[0].date && ` · ${slides[0].date}`}</p>
+              <p class="stage-title" data-title>{slides[0].title}</p>
+              <p class="stage-text" data-text>{slides[0].caption} {slides[0].credit}</p>
+              <p><a href={slides[0].href} data-link>View this record</a></p>
+            </div>
+            <p class="mono-line" data-count hidden></p>
+          </div>
+          <div class="dots" data-dots></div>
+          <script type="application/json" id="slides-data" set:html={slidesJson} />
         </div>
       )}
     </div>
   </section>
 
   <script>
-    // Clicking a thumbnail swaps the large photograph. Without JavaScript the large photo
-    // links to its record, and the gallery link above reaches every photograph.
-    const lead = document.querySelector('[data-photo-lead]');
-    if (lead) {
-      const img = lead.querySelector<HTMLImageElement>('.lead-link img');
-      const link = lead.querySelector<HTMLAnchorElement>('.lead-link');
-      const title = lead.querySelector('.lead-title');
-      const buttons = lead.querySelectorAll<HTMLButtonElement>('.thumbs button');
-      buttons.forEach((b) =>
-        b.addEventListener('click', () => {
-          if (!img || !link || !title) return;
-          img.src = b.dataset.src ?? '';
-          img.alt = b.dataset.alt ?? '';
-          link.href = b.dataset.href ?? '';
-          title.textContent = b.dataset.title ?? '';
-          buttons.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-        }),
-      );
+    // One photograph at a time, with arrows, the arrow keys and a progress bar.
+    // Without JavaScript the first photograph shows, and the gallery link reaches the rest.
+    const root = document.querySelector<HTMLElement>('[data-stage]');
+    const data = document.getElementById('slides-data');
+    if (root && data) {
+      type Slide = { id: string; href: string; src: string; alt: string; title: string; caption: string; date: string; credit: string };
+      const slides: Slide[] = JSON.parse(data.textContent ?? '[]');
+      const q = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+      const img = q<HTMLImageElement>('[data-img]');
+      const [prev, next] = [q<HTMLButtonElement>('[data-prev]'), q<HTMLButtonElement>('[data-next]')];
+      const count = q('[data-count]');
+      const dots = q('[data-dots]');
+      let i = 0;
+
+      slides.forEach((s, k) => {
+        const d = document.createElement('button');
+        d.type = 'button';
+        d.setAttribute('aria-label', `Photograph ${k + 1}: ${s.title}`);
+        d.addEventListener('click', () => show(k));
+        dots.append(d);
+      });
+
+      function show(n: number) {
+        i = (n + slides.length) % slides.length;
+        const s = slides[i];
+        img.src = s.src;
+        img.alt = s.alt;
+        q('[data-meta]').textContent = s.date ? `${s.id} · ${s.date}` : s.id;
+        q('[data-title]').textContent = s.title;
+        q('[data-text]').textContent = `${s.caption} ${s.credit}`.trim();
+        q<HTMLAnchorElement>('[data-link]').href = s.href;
+        count.textContent = `${i + 1} / ${slides.length}`;
+        [...dots.children].forEach((d, k) => (k === i ? d.setAttribute('aria-current', 'true') : d.removeAttribute('aria-current')));
+      }
+
+      if (slides.length > 1) {
+        prev.hidden = next.hidden = count.hidden = false;
+        prev.addEventListener('click', () => show(i - 1));
+        next.addEventListener('click', () => show(i + 1));
+        q('.stage').addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft') show(i - 1);
+          if (e.key === 'ArrowRight') show(i + 1);
+        });
+      }
+      show(0);
     }
   </script>
 
@@ -320,8 +360,7 @@ const icons: Record<string, string> = {
 
   /* Featured voices: warm background so it stands apart from the cool sections around it */
   .voices { background: var(--sand); border-block: 1px solid #E4CDB9; }
-  .voices h2 { display: flex; align-items: baseline; gap: var(--space-2); }
-  .quote-mark { color: var(--accent); font-size: 1.6em; line-height: 0.6; }
+  .quote-mark { color: var(--accent); margin-right: var(--space-1); }
   .pending {
     display: flex;
     flex-wrap: wrap;
@@ -331,7 +370,6 @@ const icons: Record<string, string> = {
     padding: var(--space-6);
     border: 2px dashed var(--accent);
     background: rgba(255, 255, 255, 0.5);
-    font-size: var(--step-1);
   }
   .section-head a.label { color: var(--accent); min-height: var(--tap); display: inline-flex; align-items: center; }
 
@@ -344,46 +382,69 @@ const icons: Record<string, string> = {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
   }
 
-  /* Image panel */
-  .image-panel { padding-block: var(--space-7); }
-  .image-panel figure { display: grid; gap: var(--space-5); align-items: center; }
+  /* Newsreel panel */
+  .video-panel { padding-block: var(--space-7); }
+  .video-panel figure { display: grid; gap: var(--space-5); align-items: center; }
   @media (min-width: 56rem) {
-    .image-panel figure { grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); gap: var(--space-7); }
+    .video-panel figure { grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); gap: var(--space-7); }
   }
-  .panel-link { display: block; background: var(--white); padding: var(--space-2); }
-  .panel-link img { width: 100%; }
-  .image-panel figcaption > * + * { margin-top: var(--space-3); }
+  .frame { position: relative; aspect-ratio: 16 / 9; background: #0c171e; }
+  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video-panel figcaption > * + * { margin-top: var(--space-3); }
   .panel-caption { font-size: var(--step-1); line-height: 1.5; color: var(--white); }
 
-  /* Photographs: lead photo with a thumbnail strip */
-  .lead { display: grid; gap: var(--space-5); }
-  @media (min-width: 52rem) {
-    .lead { grid-template-columns: 2fr 1fr; align-items: start; }
-  }
-  .lead-main { background: var(--ink); color: var(--white); padding: var(--space-4); }
-  .lead-link { display: block; background: var(--white); padding: 6px; }
-  .lead-link img { display: block; width: 100%; max-height: 26rem; object-fit: contain; }
-  .lead-main .eyebrow { margin-top: var(--space-3); color: var(--accent-on-ink); }
-  .lead-title { margin-top: var(--space-1); line-height: 1.5; }
-  .thumbs {
-    list-style: none;
-    padding: 0;
+  /* Photographs: dark stage */
+  .photos-stage .section-head a.label { color: var(--accent-on-ink); }
+  .stage {
+    position: relative;
     display: grid;
-    gap: var(--space-2);
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 5rem), 1fr));
+    place-items: center;
+    height: min(62vh, 30rem);
+    background: #0c171e;
   }
-  .thumbs button {
-    display: block;
-    width: 100%;
-    aspect-ratio: 1;
-    padding: 3px;
-    background: var(--white);
-    border: 2px solid var(--rule);
+  .stage:focus-visible { outline: 3px solid var(--accent-on-ink); outline-offset: 2px; }
+  .stage img { max-height: min(62vh, 30rem); max-width: 100%; object-fit: contain; }
+  .arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--tap);
+    height: var(--tap);
+    border-radius: 50%;
+    border: 1px solid #5b6f78;
+    background: rgba(18, 33, 43, 0.85);
+    color: var(--white);
+    font-size: 1.4rem;
+    line-height: 1;
     cursor: pointer;
   }
-  .thumbs button:hover { border-color: var(--ink); }
-  .thumbs button[aria-pressed='true'] { border-color: var(--accent); }
-  .thumbs img { width: 100%; height: 100%; object-fit: cover; }
+  .arrow:hover { background: var(--accent); border-color: var(--accent); }
+  .arrow[hidden] { display: none; }
+  .arrow.prev { left: var(--space-3); }
+  .arrow.next { right: var(--space-3); }
+  .stage-cap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-6);
+    padding-top: var(--space-4);
+  }
+  .stage-cap > div > * + * { margin-top: var(--space-2); }
+  .mono-line { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-on-ink); }
+  .stage-title { font-weight: 600; color: var(--white); }
+  .stage-text { max-width: 46rem; color: var(--on-ink); font-size: var(--step--1); line-height: 1.5; }
+  .dots { display: flex; gap: var(--space-2); margin-top: var(--space-4); }
+  .dots :global(button) {
+    width: 2.25rem;
+    height: 0.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+  }
+  .dots :global(button)::after { content: ''; position: absolute; left: 0; right: 0; top: 0.2rem; height: 0.35rem; background: #33464F; }
+  .dots :global(button[aria-current='true'])::after { background: var(--accent-on-ink); }
 
   /* Process */
   .steps {
