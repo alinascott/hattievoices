@@ -6,7 +6,7 @@ storm: hattie-1961              # must match an id in src/data/storms.json
 title: ""
 featured: false                 # true = may appear in "Featured voices" on the homepage
 narrator:
-  name: ""                      # full name (required)
+  name: ""                      # name as credited (required); first name and last initial only if they prefer to be anonymous
   other_names: ""               # nicknames, maiden name, etc.
   age_in_1961:                  # witnesses only: a number, or leave blank if unknown
   residence: ""                 # town, country
