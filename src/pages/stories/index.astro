@@ -41,20 +41,20 @@ const index = await Promise.all(
         <p class="eyebrow">The archive</p>
         <h1>Listen</h1>
         <p class="lede">
-          Oral histories of Hurricane Hattie, recorded with the people who lived through it and with the families who
-          carry their stories, alongside survivor testimonies from the Belize National Library Service.
+          This page is dedicated to audio and video testimonies of those who experienced Hurricane Hattie. Some
+          interviews were conducted in 2021 by the Belize National Library Service Information System and published on
+          the 60th anniversary of Hattie. Each one plays from the library's YouTube channel and stays with the library.
+          <a href={playlist} rel="noopener">See the full playlist on YouTube <span aria-hidden="true">↗</span><span class="visually-hidden">(on another website)</span></a>
+        </p>
+        <p class="lede">
+          We are actively conducting interviews to add to this collection. If you or a loved one has a story, consider
+          <a href={url('/get-involved/')}>reaching out to us</a>.
         </p>
       </header>
 
       <div class="sections">
       {testimonies.length > 0 && (
-        <section class="group" style={`order: ${storiesFirst ? 2 : 1}`} aria-labelledby="testimonies-title">
-          <h2 id="testimonies-title">Survivor testimonies</h2>
-          <p class="group-lede">
-            For the 60th anniversary of Hurricane Hattie in 2021, the Belize National Library Service Information
-            System published recorded testimonies from survivors. Each one plays from the library's YouTube channel and
-            stays with the library. <a href={playlist} rel="noopener">See the full playlist on YouTube <span aria-hidden="true">↗</span><span class="visually-hidden">(on another website)</span></a>
-          </p>
+        <section class="group" style={`order: ${storiesFirst ? 2 : 1}`} aria-label="Testimonies">
           <p class="count label">{testimonies.length} {testimonies.length === 1 ? 'testimony' : 'testimonies'}</p>
           <ul class="media-grid">
             {testimonies.map((m) => (
@@ -246,7 +246,8 @@ const index = await Promise.all(
 <style>
   .page-head { margin-bottom: var(--space-7); }
   .page-head h1 { margin-top: var(--space-2); }
-  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; max-width: 46rem; }
+  .lede + .lede { margin-top: var(--space-3); }
 
   .sections { display: flex; flex-direction: column; gap: var(--space-8); }
   .group h2 { border-top: 4px solid var(--ink); padding-top: var(--space-3); margin-bottom: var(--space-4); }
