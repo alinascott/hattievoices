@@ -99,32 +99,6 @@ const icons: Record<string, string> = {
     </div>
   </section>
 
-  <!-- About the project -->
-  <section class="section" aria-labelledby="about-title">
-    <div class="container about">
-      <div class="section-head">
-        <h2 id="about-title">About the project</h2>
-      </div>
-      <div class="about-grid">
-        <div class="about-copy">
-          <p class="lede">
-            {SITE.name} records stories of Hurricane Hattie through the memories of those who experienced it. This is a
-            public oral history project that creates a historical repository for Belizean stories. Browse the site and
-            learn how you can <a href={url('/get-involved/')}>get involved</a>.
-          </p>
-          <p>
-            This project exists as a way to collect the memories of our elders who witnessed and experienced the
-            disastrous storm.
-          </p>
-          <p><a href={url('/about/')}>How we work: ethics and consent</a></p>
-        </div>
-        <dl class="about-facts">
-          <div><dt class="label">Project lead</dt><dd><a href={SITE.projectLeadUrl} rel="noopener">{SITE.projectLead}</a></dd></div>
-        </dl>
-      </div>
-    </div>
-  </section>
-
   <!-- Process -->
   <section class="section panel" aria-labelledby="process-title">
     <div class="container">
@@ -205,8 +179,8 @@ const icons: Record<string, string> = {
         </ul>
       ) : (
         <div class="pending">
-          <p><em>The first stories are being recorded now. <a href={url('/get-involved/')}>Share yours.</a></em></p>
-          <a class="btn" href={url('/get-involved/')}>Share a story</a>
+          <p><em>We are actively transcribing oral histories from the Belize National Library Service Information System and recording new interviews of our own. <a href={url('/get-involved/')}>Share your story.</a></em></p>
+          <a class="btn" href={url('/get-involved/')}>Share your story</a>
         </div>
       )}
     </div>
@@ -330,6 +304,32 @@ const icons: Record<string, string> = {
       <StormTimeline />
     </div>
   </section>
+
+  <!-- About the project -->
+  <section class="section" aria-labelledby="about-title">
+    <div class="container about">
+      <div class="section-head">
+        <h2 id="about-title">About the project</h2>
+      </div>
+      <div class="about-grid">
+        <div class="about-copy">
+          <p class="lede">
+            {SITE.name} records stories of Hurricane Hattie through the memories of those who experienced it. This is a
+            public oral history project that creates a historical repository for Belizean stories. Browse the site and
+            learn how you can <a href={url('/get-involved/')}>get involved</a>.
+          </p>
+          <p>
+            This project exists as a way to collect the memories of our elders who witnessed and experienced the
+            disastrous storm.
+          </p>
+          <p><a href={url('/about/')}>How we work: ethics and consent</a></p>
+        </div>
+        <dl class="about-facts">
+          <div><dt class="label">Project lead</dt><dd><a href={SITE.projectLeadUrl} rel="noopener">{SITE.projectLead}</a></dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
 </BaseLayout>
 
 <style>
@@ -343,9 +343,9 @@ const icons: Record<string, string> = {
   .glance-title { color: var(--accent); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-bottom: var(--space-4); }
   .glance-grid { display: grid; gap: var(--space-6); align-items: center; }
   @media (min-width: 52rem) {
-    .glance-grid { grid-template-columns: 1.6fr 1fr; }
+    .glance-grid { grid-template-columns: minmax(0, 1fr) minmax(16rem, 19rem); }
   }
-  .glance-text { font-size: var(--step-1); line-height: 1.55; color: var(--ink); max-width: 44rem; }
+  .glance-text { font-size: var(--step-2); line-height: 1.4; color: var(--ink); max-width: 42rem; }
   .glance-text mark { background: none; color: var(--accent); font-weight: 700; }
   .gauge { background: var(--panel); border-top: 3px solid var(--ink); padding: var(--space-4) var(--space-4) var(--space-2); color: var(--ink); }
   .gauge svg { display: block; width: 100%; height: auto; }
