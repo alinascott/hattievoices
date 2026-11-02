@@ -45,7 +45,7 @@ const stories = defineCollection({
       title: z.string().min(1),
       featured: z.boolean().default(false),
       narrator: z.object({
-        name: z.string().min(1, 'Narrators are always identified by full name'),
+        name: z.string().min(1, 'Narrators are identified by name, or by first name and last initial if they prefer to be anonymous'),
         other_names: z.string().optional(),
         age_in_1961: z.number().int().min(0).max(120).optional().nullable(),
         residence: z.string().min(1),
