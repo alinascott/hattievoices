@@ -9,13 +9,9 @@ import { url } from '../lib/url';
 import Value from '../components/Value.astro';
 import { getFeaturedStories, getMedia, getPhotos } from '../lib/content';
 
-// Add a `source` to any fact to show a citation line under it, e.g. source: 'Friesen, 1964'.
-const facts: { figure: string; text: string; source?: string }[] = [
-  { figure: '31 Oct 1961', text: 'Hattie came ashore in British Honduras.' },
-  { figure: '14 ft', text: 'Storm tide at its highest, near Belize City.' },
-  { figure: 'Hundreds', text: 'lost their lives, and thousands were left homeless.' },
-  { figure: 'Belmopan', text: 'The capital was later moved inland.' },
-];
+// Tide gauge illustration: a vertical scale in feet, 0 at y=240 and 14 at y=26 (15.28px a foot),
+// drawn beside a 6-foot person for scale.
+const gauge = Array.from({ length: 15 }, (_, ft) => ({ ft, y: 240 - ft * 15.28 }));
 
 const featured = await getFeaturedStories(3);
 const allPhotos = await getPhotos();
@@ -60,15 +56,45 @@ const icons: Record<string, string> = {
   <section class="glance" aria-labelledby="glance-title">
     <div class="container">
       <h2 id="glance-title" class="label glance-title">At a glance</h2>
-      <ul class="facts">
-        {facts.map((f) => (
-          <li>
-            <span class="figure">{f.figure}</span>
-            <span class="fact-text">{f.text}</span>
-            {f.source && <span class="fact-source">Source: {f.source}</span>}
-          </li>
-        ))}
-      </ul>
+      <div class="glance-grid">
+        <p class="glance-text">
+          On <mark>Halloween 1961</mark>, Hurricane Hattie caused unimaginable devastation to Belize's Caribbean coast.
+          The tide rose some <mark>14 feet</mark>, blew roofs off buildings, and caused the government to designate a
+          new capital: <mark>Belmopan</mark>.
+        </p>
+        <figure class="gauge">
+          <svg viewBox="0 0 320 260" role="img" aria-label="A gauge marked in feet, with the water line at 14 feet and a 6-foot person for scale">
+            <line x1="70" y1="240" x2="70" y2="20" stroke="currentColor" stroke-width="2" />
+            {gauge.map((g) => (
+              <line x1={g.ft % 2 ? 58 : 50} y1={g.y} x2="70" y2={g.y} stroke="currentColor" stroke-width="2" />
+            ))}
+            {gauge.filter((g) => g.ft % 2 === 0).map((g) => (
+              <text x="44" y={g.y + 4} class="gauge-num" text-anchor="end">{g.ft}</text>
+            ))}
+            <rect x="70" y="26" width="240" height="214" class="water" />
+            <path d="M70 26 q15 -7 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0" class="wave" />
+            <line x1="70" y1="240" x2="310" y2="240" stroke="currentColor" stroke-width="3" />
+            <g fill="currentColor">
+              <circle cx="190" cy="159" r="9" />
+              <rect x="183" y="170" width="14" height="40" rx="4" />
+              <rect x="183" y="208" width="6" height="32" />
+              <rect x="191" y="208" width="6" height="32" />
+            </g>
+            <text x="226" y="150" class="gauge-num">6 ft person</text>
+            <text x="210" y="20" class="gauge-14" text-anchor="middle">14 FT</text>
+          </svg>
+          <figcaption>Illustration: a tide of some 14 feet, shown against a person 6 feet tall.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- What this repository is -->
+  <section class="band dark" aria-label="About this repository">
+    <div class="container">
+      <p class="band-text">
+        This online repository brings together resources and primary source oral histories related to Hurricane Hattie.
+      </p>
     </div>
   </section>
 
@@ -314,32 +340,23 @@ const icons: Record<string, string> = {
     padding-block: var(--space-7);
   }
   .glance-title { color: var(--accent); font-family: var(--font-mono); font-stretch: normal; font-size: var(--step--1); margin-bottom: var(--space-4); }
-  .facts {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
-    gap: var(--space-5);
+  .glance-grid { display: grid; gap: var(--space-6); align-items: center; }
+  @media (min-width: 52rem) {
+    .glance-grid { grid-template-columns: 1.6fr 1fr; }
   }
-  .facts li {
-    border-top: 3px solid var(--ink);
-    padding-top: var(--space-3);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  .figure {
-    font-family: var(--font-display);
-    font-weight: var(--display-weight);
-    font-stretch: var(--display-stretch);
-    text-transform: uppercase;
-    font-size: var(--step-3);
-    line-height: 1;
-    white-space: nowrap;
-    color: var(--accent);
-  }
-  .fact-text { color: var(--text); font-size: var(--step-0); line-height: 1.45; }
-  .fact-source { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+  .glance-text { font-size: var(--step-1); line-height: 1.55; color: var(--ink); max-width: 44rem; }
+  .glance-text mark { background: none; color: var(--accent); font-weight: 700; }
+  .gauge { background: var(--panel); border-top: 3px solid var(--ink); padding: var(--space-4) var(--space-4) var(--space-2); color: var(--ink); }
+  .gauge svg { display: block; width: 100%; height: auto; }
+  .gauge figcaption { font-size: var(--step--1); color: var(--muted); padding-top: var(--space-2); }
+  .gauge .water { fill: #205B88; opacity: 0.18; }
+  .gauge .wave { fill: none; stroke: #205B88; stroke-width: 3; }
+  .gauge-num { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+  .gauge-14 { font-family: var(--font-display); font-weight: var(--display-weight); font-size: 18px; fill: var(--accent); }
+
+  /* Dark text band under At a glance */
+  .band { padding-block: var(--space-7); border-bottom: 4px solid var(--accent); }
+  .band-text { font-size: var(--step-2); line-height: 1.4; max-width: 46rem; font-weight: 500; color: var(--white); }
 
   /* About */
   .about-grid {
