@@ -7,6 +7,7 @@ import StormTimeline from '../components/StormTimeline.astro';
 import { SITE } from '../config';
 import { url } from '../lib/url';
 import Value from '../components/Value.astro';
+import SongBar from '../components/SongBar.astro';
 import { getFeaturedStories, getMedia, getPhotos, TESTIMONY_KIND } from '../lib/content';
 
 // Tide gauge illustration: a vertical scale in feet, 0 at y=240 and 14 at y=26 (15.28px a foot),
@@ -21,6 +22,8 @@ const allMedia = await getMedia();
 const media = allMedia.filter((m) => m.data.kind !== TESTIMONY_KIND).slice(0, 3);
 // Newsreel shown between the process steps and Featured voices
 const video = allMedia.find((m) => m.data.youtube_id === 'OtGhDk3aJCA');
+// Song played from the bar at the foot of the page
+const song = allMedia.find((m) => m.data.youtube_id === 'mPd-yiYOfbA');
 // Slides for the Photographs viewer; the script reads them from the page
 const slides = photos.map((p) => ({
   id: p.id,
@@ -330,6 +333,17 @@ const icons: Record<string, string> = {
       </div>
     </div>
   </section>
+
+  {song && (
+    <SongBar
+      youtubeId={song.data.youtube_id as string}
+      title={song.data.title}
+      artist={song.data.creator}
+      year={song.data.date}
+      href={url(`/media/${song.id}/`)}
+      watchUrl={song.data.url}
+    />
+  )}
 </BaseLayout>
 
 <style>

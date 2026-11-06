@@ -1,0 +1,177 @@
+---
+// "Now playing" bar fixed to the foot of the home page. YouTube is not contacted until a visitor
+// presses play, and the player uses YouTube's privacy-enhanced mode (youtube-nocookie.com).
+interface Props {
+  youtubeId: string;
+  title: string;
+  artist: string;
+  year: string;
+  /** This item's own page on the site */
+  href: string;
+  /** The video's page on YouTube */
+  watchUrl: string;
+}
+const { youtubeId, title, artist, year, href, watchUrl } = Astro.props;
+---
+
+<section class="songbar" id="songbar" aria-label="Song player" data-video={youtubeId} hidden>
+  <div class="panel" id="songbar-panel" hidden>
+    <div class="player"><div id="songbar-player"></div></div>
+    <p class="credit">
+      {artist}, “{title}” ({year}). Played from YouTube; we link to it rather than copy it.
+      <a href={href}>About this song</a> ·
+      <a href={watchUrl} rel="noopener">Open on YouTube <span aria-hidden="true">↗</span><span class="visually-hidden">(on another website)</span></a>
+    </p>
+  </div>
+  <div class="row">
+    <span class="disc" aria-hidden="true"></span>
+    <div class="text">
+      <span class="label kicker">A song from {year}</span>
+      <strong>{title}</strong>
+      <span class="by">{artist}</span>
+    </div>
+    <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    <button class="btn" id="songbar-play" type="button" aria-expanded="false" aria-controls="songbar-panel">
+      <span aria-hidden="true">▶ </span><span id="songbar-play-label">Play</span><span class="visually-hidden"> “{title}” by {artist}</span>
+    </button>
+    <button class="btn btn-ghost close" id="songbar-close" type="button">Close<span class="visually-hidden"> song player</span></button>
+  </div>
+</section>
+
+<script>
+  const bar = document.getElementById('songbar') as HTMLElement | null;
+  if (bar) {
+    const dismissed = (() => {
+      try { return sessionStorage.getItem('songbar-dismissed') === '1'; } catch { return false; }
+    })();
+    if (!dismissed) {
+      bar.hidden = false;
+      document.body.classList.add('has-songbar');
+    }
+
+    const panel = document.getElementById('songbar-panel') as HTMLElement;
+    const play = document.getElementById('songbar-play') as HTMLButtonElement;
+    const label = document.getElementById('songbar-play-label') as HTMLElement;
+    const close = document.getElementById('songbar-close') as HTMLButtonElement;
+    const videoId = bar.dataset.video as string;
+    let player: any = null;
+    let apiLoad: Promise<void> | null = null;
+
+    // YouTube's script loads only when someone first presses play
+    const loadApi = () =>
+      (apiLoad ??= new Promise<void>((resolve) => {
+        const w = window as any;
+        if (w.YT && w.YT.Player) return resolve();
+        w.onYouTubeIframeAPIReady = () => resolve();
+        const s = document.createElement('script');
+        s.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(s);
+      }));
+
+    const setOpen = (open: boolean) => {
+      panel.hidden = !open;
+      bar.classList.toggle('open', open);
+      play.setAttribute('aria-expanded', String(open));
+      label.textContent = open ? 'Hide' : player ? 'Show' : 'Play';
+    };
+
+    play.addEventListener('click', async () => {
+      if (!player) {
+        setOpen(true);
+        await loadApi();
+        const YT = (window as any).YT;
+        player = new YT.Player('songbar-player', {
+          host: 'https://www.youtube-nocookie.com',
+          videoId,
+          width: '100%',
+          height: '100%',
+          playerVars: { rel: 0, playsinline: 1, autoplay: 1 },
+          events: {
+            onStateChange: (e: any) => bar.classList.toggle('playing', e.data === 1),
+          },
+        });
+        return;
+      }
+      setOpen(panel.hidden);
+    });
+
+    const dismiss = () => {
+      if (player) { try { player.destroy(); } catch {} player = null; }
+      const holder = document.querySelector('#songbar .player') as HTMLElement;
+      holder.innerHTML = '<div id="songbar-player"></div>';
+      bar.classList.remove('playing');
+      setOpen(false);
+      bar.hidden = true;
+      document.body.classList.remove('has-songbar');
+      try { sessionStorage.setItem('songbar-dismissed', '1'); } catch {}
+    };
+    close.addEventListener('click', dismiss);
+
+    // Escape tucks the player away without stopping the song
+    bar.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !panel.hidden) { setOpen(false); play.focus(); }
+    });
+  }
+</script>
+
+<style is:global>
+  .songbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    background: var(--ink);
+    color: var(--on-ink);
+    border-top: 3px solid var(--accent-on-ink);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+  }
+  .songbar[hidden], .songbar .panel[hidden] { display: none; }
+  body.has-songbar { padding-bottom: 76px; }
+  .songbar .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    max-width: var(--container);
+    margin-inline: auto;
+    padding: var(--space-2) var(--gutter);
+    min-height: 68px;
+  }
+  .songbar .text { flex: 1; min-width: 0; display: grid; line-height: 1.25; }
+  .songbar .kicker { color: var(--accent-on-ink); }
+  .songbar strong { color: var(--white); font-size: var(--step-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .songbar .by { font-size: var(--step--1); }
+  .songbar .disc {
+    flex: none; width: 40px; height: 40px; border-radius: 50%; position: relative;
+    background: repeating-radial-gradient(circle, #101010 0 2px, #1e1e1e 2px 4px);
+    border: 2px solid #000;
+  }
+  .songbar .disc::after { content: ''; position: absolute; inset: 33%; border-radius: 50%; background: var(--accent-on-ink); }
+  .songbar.playing .disc { animation: songbar-spin 3s linear infinite; }
+  .songbar .eq { display: flex; gap: 3px; align-items: flex-end; height: 20px; }
+  .songbar .eq i { width: 4px; height: 6px; background: var(--accent-on-ink); }
+  .songbar.playing .eq i { animation: songbar-eq 1s ease-in-out infinite; }
+  .songbar .eq i:nth-child(2) { animation-delay: 0.2s; }
+  .songbar .eq i:nth-child(3) { animation-delay: 0.4s; }
+  .songbar .eq i:nth-child(4) { animation-delay: 0.1s; }
+  .songbar .eq i:nth-child(5) { animation-delay: 0.3s; }
+  @keyframes songbar-spin { to { transform: rotate(360deg); } }
+  @keyframes songbar-eq { 0%, 100% { height: 5px; } 50% { height: 20px; } }
+  .songbar .panel {
+    max-width: var(--container);
+    margin-inline: auto;
+    padding: var(--space-4) var(--gutter) var(--space-2);
+  }
+  .songbar .player { position: relative; width: min(100%, 30rem); aspect-ratio: 16 / 9; min-height: 200px; background: #000; }
+  .songbar .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .songbar .credit { margin-top: var(--space-3); font-size: var(--step--1); max-width: 40rem; }
+  .songbar .credit a { color: var(--accent-on-ink); }
+  @media (max-width: 40rem) {
+    .songbar .eq, .songbar .by, .songbar .kicker { display: none; }
+    .songbar .row { gap: var(--space-3); }
+    .songbar .btn { padding-inline: var(--space-3); }
+    .songbar .disc { width: 32px; height: 32px; }
+    .songbar strong { white-space: normal; line-height: 1.15; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .songbar.playing .disc, .songbar.playing .eq i { animation: none; }
+  }
+</style>
