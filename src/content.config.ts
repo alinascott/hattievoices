@@ -190,6 +190,7 @@ const media = defineCollection({
       creator: z.string().min(1), // reporter, film-maker or production company
       publisher: z.string().min(1), // who published it, e.g. "British Pathé"
       duration: z.string().optional(), // e.g. "0:41"
+      format: z.enum(['video', 'article']).default('video'), // article: a written piece, read on the publisher's site
       platform: z.enum(['YouTube', 'Facebook', 'Website']),
       url: z.string().url(), // the item's own page
       youtube_id: z.string().regex(/^[\w-]{11}$/, 'A YouTube id is the 11 characters after v= in the link').optional().or(z.literal('')), // embed this YouTube video on the page

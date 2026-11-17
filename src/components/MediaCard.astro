@@ -9,8 +9,10 @@ interface Props {
   duration?: string;
   summary: string;
   embedded: boolean;
+  format?: 'video' | 'article';
 }
-const { href, title, kind, date, creator, platform, duration, summary, embedded } = Astro.props;
+const { href, title, kind, date, creator, platform, duration, summary, embedded, format = 'video' } = Astro.props;
+const where = format === 'article' ? 'Read online ↗' : embedded ? 'Watch here →' : `Watch on ${platform} ↗`;
 ---
 
 <article class="media-card card">
@@ -18,7 +20,7 @@ const { href, title, kind, date, creator, platform, duration, summary, embedded 
   <h3><a href={href}>{title}</a></h3>
   <p class="creator">{creator}</p>
   <p class="summary">{summary}</p>
-  <p class="where label" aria-hidden="true">{embedded ? 'Watch here →' : `Watch on ${platform} ↗`}</p>
+  <p class="where label" aria-hidden="true">{where}</p>
 </article>
 
 <style>

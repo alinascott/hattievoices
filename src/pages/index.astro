@@ -19,7 +19,8 @@ const allPhotos = await getPhotos();
 const photos = allPhotos.slice(0, 6);
 const allMedia = await getMedia();
 // Survivor testimonies have their own group on the Media page, so they stay out of this strip
-const media = allMedia.filter((m) => m.data.kind !== TESTIMONY_KIND).slice(0, 3);
+// Articles are listed under Read on the Media page; this strip shows video
+const media = allMedia.filter((m) => m.data.kind !== TESTIMONY_KIND && m.data.format !== 'article').slice(0, 3);
 // Newsreel shown between the process steps and Featured voices
 const video = allMedia.find((m) => m.data.youtube_id === 'OtGhDk3aJCA');
 // Song played from the bar at the foot of the page
@@ -53,7 +54,7 @@ const icons: Record<string, string> = {
 };
 ---
 
-<BaseLayout>
+<BaseLayout intro>
   <Hero />
 
   <!-- At a glance -->
@@ -289,6 +290,7 @@ const icons: Record<string, string> = {
                 duration={m.data.duration}
                 summary={m.data.summary}
                 embedded={Boolean(m.data.youtube_id)}
+                format={m.data.format}
               />
             </li>
           ))}

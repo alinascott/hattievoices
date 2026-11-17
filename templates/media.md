@@ -9,8 +9,9 @@ summary: ""                     # one or two sentences, shown on the Media page
 date: ""                        # free text, e.g. "1961" or "November 2021"
 creator: ""                     # reporter, film-maker or production company
 publisher: ""                   # who published it and where, e.g. "News 5 Live (Facebook)"
-duration: ""                    # optional, e.g. "4:32"
-platform: YouTube               # YouTube | Facebook | Website
+duration: ""                    # optional, e.g. "4:32"; for an article, its pages, e.g. "pp. 63–80"
+format: video                   # video | article (a written piece: news article, essay, journal article)
+platform: YouTube               # YouTube | Facebook | Website (use Website for articles)
 url: ""                         # the item's own page
 youtube_id: ""                  # YouTube only: the 11 characters after v= in the link. Delete for other platforms.
 rights: ""

@@ -6,41 +6,53 @@ import { getMedia, TESTIMONY_KIND } from '../../lib/content';
 
 // Survivor testimonies are shown on the Listen page
 const items = (await getMedia()).filter((m) => m.data.kind !== TESTIMONY_KIND);
+const groups = [
+  { key: 'video', heading: 'Watch', items: items.filter((m) => m.data.format !== 'article') },
+  { key: 'article', heading: 'Read', items: items.filter((m) => m.data.format === 'article') },
+].filter((g) => g.items.length > 0);
 ---
 
-<BaseLayout title="Media" section="media" description="Newsreels, news reports and other video about Hurricane Hattie.">
+<BaseLayout title="Media" section="media" description="Newsreels, news reports, articles and other media about Hurricane Hattie.">
   <section class="section">
     <div class="container">
       <header class="page-head">
         <p class="eyebrow">The archive</p>
         <h1>Media</h1>
         <p class="lede">
-          Newsreels and news reports about Hurricane Hattie, from footage filmed in 1961 to anniversary coverage. Each
-          is credited to the people who made it and stays with its publisher; we embed or link to it rather than copy it.
+          Newsreels, news reports and writing about Hurricane Hattie, from footage filmed in 1961 to anniversary coverage
+          and scholarship. Each is credited to the people who made it and stays with its publisher; we embed or link to
+          it rather than copy it.
         </p>
         <p class="see-also">Looking for survivors' own words? See the <a href={url('/stories/')}>survivor testimonies on the Listen page</a>.</p>
       </header>
 
-      <p class="count label">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
-
-      {items.length > 0 ? (
-        <ul class="media-grid">
-          {items.map((m) => (
-            <li>
-              <MediaCard
-                href={url(`/media/${m.id}/`)}
-                title={m.data.title}
-                kind={m.data.kind}
-                date={m.data.date}
-                creator={m.data.creator}
-                platform={m.data.platform}
-                duration={m.data.duration}
-                summary={m.data.summary}
-                embedded={Boolean(m.data.youtube_id)}
-              />
-            </li>
-          ))}
-        </ul>
+      {groups.length > 0 ? (
+        groups.map((g) => (
+          <section class="group" aria-labelledby={`group-${g.key}`}>
+            <div class="group-head">
+              <h2 id={`group-${g.key}`}>{g.heading}</h2>
+              <p class="count label">{g.items.length} {g.items.length === 1 ? 'item' : 'items'}</p>
+            </div>
+            <ul class="media-grid">
+              {g.items.map((m) => (
+                <li>
+                  <MediaCard
+                    href={url(`/media/${m.id}/`)}
+                    title={m.data.title}
+                    kind={m.data.kind}
+                    date={m.data.date}
+                    creator={m.data.creator}
+                    platform={m.data.platform}
+                    duration={m.data.duration}
+                    summary={m.data.summary}
+                    embedded={Boolean(m.data.youtube_id)}
+                    format={m.data.format}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       ) : (
         <p>No media has been added yet.</p>
       )}
@@ -53,7 +65,9 @@ const items = (await getMedia()).filter((m) => m.data.kind !== TESTIMONY_KIND);
   .page-head h1 { margin-top: var(--space-2); }
   .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
   .see-also { margin-top: var(--space-4); }
-  .count { color: var(--muted); margin-bottom: var(--space-4); }
+  .group + .group { margin-top: var(--space-8); }
+  .group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); padding-bottom: var(--space-2); border-bottom: 4px solid var(--ink); }
+  .count { color: var(--muted); }
   .media-grid {
     list-style: none;
     padding: 0;
