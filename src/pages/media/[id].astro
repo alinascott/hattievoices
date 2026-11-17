@@ -16,6 +16,9 @@ const d = item.data;
 const isTestimony = d.kind === TESTIMONY_KIND;
 const { Content } = await render(item);
 const hasBody = Boolean(item.body?.trim());
+const isArticle = d.format === 'article';
+// e.g. "amandala.com.bz", shown on the button for written pieces
+const site = new URL(d.url).hostname.replace(/^www\./, '');
 
 const linked = new Set(d.related_stories.map((r) => r.id));
 const stories = (await getStories()).filter((s) => linked.has(s.id));
@@ -25,7 +28,7 @@ const rows = [
   { label: 'Date', value: d.date },
   { label: 'Made by', value: d.creator },
   { label: 'Published by', value: d.publisher },
-  { label: 'Length', value: d.duration },
+  { label: d.format === 'article' ? 'Pages' : 'Length', value: d.duration },
   { label: 'Rights', value: d.rights },
   { label: 'Archive ID', value: item.id },
 ].filter((r) => r.value?.trim());
@@ -62,12 +65,14 @@ const rows = [
           </figure>
         ) : (
           <div class="offsite card">
-            <p class="label">Hosted on {d.platform}</p>
+            <p class="label">{isArticle ? `Published at ${site}` : `Hosted on ${d.platform}`}</p>
             <p>
-              This video belongs to its publisher and is not copied to this site. You can watch it on {d.platform}.
+              {isArticle
+                ? 'This piece belongs to its publisher and is not copied to this site. You can read it on their website.'
+                : `This video belongs to its publisher and is not copied to this site. You can watch it on ${d.platform}.`}
             </p>
             <a class="btn" href={d.url} rel="noopener">
-              Watch on {d.platform} <span aria-hidden="true">↗</span>
+              {isArticle ? 'Read the article' : `Watch on ${d.platform}`} <span aria-hidden="true">↗</span>
               <span class="visually-hidden">(on another website)</span>
             </a>
             <p class="meta credit">{d.credit}</p>

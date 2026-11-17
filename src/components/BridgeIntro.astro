@@ -1,0 +1,148 @@
+---
+// Homepage intro, shown once per browser: the swing bridge logo opens and closes
+// in the middle of the screen, then flies into its place in the header.
+// The logo is one PNG, so it is drawn twice and clipped: the span (truss and deck,
+// rows 0–117 of 159) swings about the pivot, the pedestal below it stays still.
+// Skipped without JavaScript, with reduced motion, and on every visit after the first.
+// BaseLayout's `intro` prop adds the check in <head> that switches it on.
+import { url } from '../lib/url';
+
+const logo = url('/images/hattie-voices-logo-dark.png');
+---
+
+<div class="bridge-intro-overlay" aria-hidden="true">
+  <div class="bridge-intro-logo">
+    <img class="bridge-intro-pedestal" src={logo} alt="" width="560" height="159" />
+    <img class="bridge-intro-span" src={logo} alt="" width="560" height="159" />
+  </div>
+  <p class="bridge-intro-skip label">Click or press any key to skip</p>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const overlay = document.querySelector<HTMLElement>('.bridge-intro-overlay');
+  const logo = overlay?.querySelector<HTMLElement>('.bridge-intro-logo');
+  const span = overlay?.querySelector<HTMLElement>('.bridge-intro-span');
+  const target = document.querySelector<HTMLElement>('.site-header .brand-logo img');
+
+  if (root.classList.contains('bridge-intro') && overlay && logo && span && target) {
+    try {
+      localStorage.setItem('hv-bridge-intro-seen', '1');
+    } catch {
+      /* ignore */
+    }
+
+    let finished = false;
+    const running: Animation[] = [];
+    const play = (el: Element, frames: Keyframe[], opts: KeyframeAnimationOptions) => {
+      const a = el.animate(frames, { fill: 'forwards', ...opts });
+      running.push(a);
+      return a.finished;
+    };
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      running.forEach((a) => a.cancel());
+      root.classList.remove('bridge-intro');
+      overlay.remove();
+      removeEventListener('keydown', finish);
+    };
+    overlay.addEventListener('click', finish);
+    addEventListener('keydown', finish);
+
+    const OPEN = 'perspective(4000px) rotateY(82deg)';
+    const CLOSED = 'perspective(4000px) rotateY(0deg)';
+
+    (async () => {
+      try {
+        await play(logo, [{ opacity: 0, transform: 'scale(0.94)' }, { opacity: 1, transform: 'scale(1)' }], {
+          duration: 500,
+          easing: 'ease-out',
+        });
+        // Swing open, as the bridge turns to let boats through, then close again
+        await play(span, [{ transform: CLOSED }, { transform: OPEN }], { duration: 1200, delay: 250, easing: 'ease-in-out' });
+        await play(span, [{ transform: OPEN }, { transform: CLOSED }], { duration: 1100, delay: 400, easing: 'ease-in-out' });
+
+        // Fly into the header logo's place while the backdrop fades away
+        const from = logo.getBoundingClientRect();
+        const to = target.getBoundingClientRect();
+        const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+        const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+        const s = to.width / from.width;
+        if (finished) return;
+        overlay.classList.add('leaving');
+        await Promise.all([
+          play(logo, [{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${s})` }], {
+            duration: 850,
+            delay: 200,
+            easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+          }),
+          play(overlay, [{ backgroundColor: '#12252F' }, { backgroundColor: 'rgba(18, 37, 47, 0)' }], {
+            duration: 750,
+            delay: 300,
+            easing: 'ease-in',
+          }),
+        ]);
+      } catch {
+        /* animation cancelled by a skip */
+      }
+      finish();
+    })();
+  } else {
+    // Never leave the page locked if something is missing
+    root.classList.remove('bridge-intro');
+    overlay?.remove();
+  }
+</script>
+
+<style is:global>
+  .bridge-intro-overlay { display: none; }
+
+  html.bridge-intro { overflow: hidden; }
+  /* The header logo waits until the flying logo lands on it */
+  html.bridge-intro .site-header .brand-logo img { visibility: hidden; }
+
+  html.bridge-intro .bridge-intro-overlay {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    /* Matches the navy baked into the logo image, so the rotating span shows no box edge */
+    background: #12252F;
+    cursor: pointer;
+  }
+  .bridge-intro-logo {
+    position: relative;
+    width: min(80vw, 34rem);
+    aspect-ratio: 560 / 159;
+    transform-origin: center;
+  }
+  .bridge-intro-logo img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .bridge-intro-span {
+    clip-path: inset(0 0 25.8% 0);
+    /* Pivot: centre of the pedestal (x 247–310 of 560) */
+    transform-origin: 49.8% 50%;
+    backface-visibility: hidden;
+  }
+  .bridge-intro-pedestal { clip-path: inset(75% 0 0 0); }
+
+  .bridge-intro-skip {
+    position: absolute;
+    bottom: var(--space-6);
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: var(--on-ink);
+    opacity: 0.7;
+    transition: opacity 0.3s;
+  }
+  .bridge-intro-overlay.leaving .bridge-intro-skip { opacity: 0; }
+</style>

@@ -97,6 +97,11 @@ Newsreels, news reports and other video go on the **Media** page. They are never
 1. `cp templates/media.md src/content/media/MD-1961-006.md` (the next free number) and fill it in.
 2. **YouTube:** set `platform: YouTube`, `url` to the video's link, and `youtube_id` to the 11 characters after `v=`. The video plays on the page, using YouTube's privacy-enhanced player.
 3. **Anywhere else** (Facebook, a news site): set `platform` and `url`, and delete `youtube_id`. The page shows a "Watch on …" button that opens the original.
+4. **Articles** (newspaper pieces, essays, journal articles): set `format: article`, `platform: Website`, `url` to the article (for a journal article, its DOI link), and delete `youtube_id`. Articles are listed under **Read** on the Media page, with a "Read the article" button. For a journal article, put its pages in `duration`, e.g. `pp. 63–80`; the page labels it "Pages".
+
+## The homepage intro
+
+The first time someone opens the homepage, the swing bridge logo opens and closes in the middle of the screen, then moves into its place in the header. It plays once per browser, is skipped for people who have turned on reduced motion, and can be skipped with a click or any key. It lives in `src/components/BridgeIntro.astro` and is switched on by `<BaseLayout intro>` in `src/pages/index.astro`; remove `intro` there to turn it off. To see it again in your own browser, clear the site's data or run `localStorage.removeItem('hv-bridge-intro-seen')` in the browser console.
 
 ## Adding a storm to the timeline
 

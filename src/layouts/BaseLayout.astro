@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import BridgeIntro from '../components/BridgeIntro.astro';
 import { SITE } from '../config';
 
 interface Props {
@@ -11,9 +12,11 @@ interface Props {
   section?: 'listen' | 'photographs' | 'media' | 'about' | 'get-involved';
   /** Keep the page out of search results (e.g. the form's thank-you page). */
   noindex?: boolean;
+  /** Show the swing bridge intro (homepage, first visit only). */
+  intro?: boolean;
 }
 
-const { title, description = SITE.description, section, noindex = false } = Astro.props;
+const { title, description = SITE.description, section, noindex = false, intro = false } = Astro.props;
 const pageTitle = title ? `${title} · ${SITE.name}` : `${SITE.name}: ${SITE.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
@@ -27,6 +30,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex" />}
+    {intro && (
+      <script is:inline>
+        // Decide before the first paint whether the swing bridge intro plays (see BridgeIntro.astro)
+        try {
+          if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !localStorage.getItem('hv-bridge-intro-seen')) {
+            document.documentElement.classList.add('bridge-intro');
+          }
+        } catch (e) {}
+      </script>
+    )}
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta name="theme-color" content="#12212B" />
@@ -38,6 +51,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     />
   </head>
   <body>
+    {intro && <BridgeIntro />}
     <a class="skip-link" href="#main">Skip to content</a>
     <SiteHeader current={section} />
     <main id="main" tabindex="-1">
