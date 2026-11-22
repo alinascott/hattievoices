@@ -25,7 +25,7 @@ const photos = await getPhotos();
         <ul class="photo-grid">
           {photos.map((p) => (
             <li>
-              <PhotoCard href={url(`/photographs/${p.id}/`)} image={url(p.data.image)} title={p.data.title} date={p.data.date} />
+              <PhotoCard href={url(`/photographs/${p.id}/`)} image={p.data.image} title={p.data.title} date={p.data.date} />
             </li>
           ))}
         </ul>

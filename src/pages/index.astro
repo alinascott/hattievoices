@@ -9,6 +9,7 @@ import { url } from '../lib/url';
 import Value from '../components/Value.astro';
 import SongBar from '../components/SongBar.astro';
 import { getFeaturedStories, getMedia, getPhotos, TESTIMONY_KIND } from '../lib/content';
+import { responsive } from '../lib/images';
 
 // Tide gauge illustration: a vertical scale in feet, 0 at y=240 and 14 at y=26 (15.28px a foot),
 // drawn beside a 6-foot person for scale.
@@ -30,6 +31,7 @@ const slides = photos.map((p) => ({
   id: p.id,
   href: url(`/photographs/${p.id}/`),
   src: url(p.data.image),
+  srcset: responsive(p.data.image).srcset ?? '',
   alt: p.data.alt ?? p.data.title,
   title: p.data.title,
   caption: p.data.caption ?? '',
@@ -201,7 +203,7 @@ const icons: Record<string, string> = {
         <div data-stage>
           <div class="stage" tabindex="0" aria-label="Photograph viewer. Use the left and right arrow keys to move between photographs.">
             <button type="button" class="arrow prev" aria-label="Previous photograph" data-prev hidden>‹</button>
-            <img src={slides[0].src} alt={slides[0].alt} data-img decoding="async" />
+            <img src={slides[0].src} srcset={slides[0].srcset || undefined} sizes="(min-width: 48rem) 42rem, 100vw" alt={slides[0].alt} data-img decoding="async" />
             <button type="button" class="arrow next" aria-label="Next photograph" data-next hidden>›</button>
           </div>
           <div class="stage-cap" aria-live="polite">
@@ -226,7 +228,7 @@ const icons: Record<string, string> = {
     const root = document.querySelector<HTMLElement>('[data-stage]');
     const data = document.getElementById('slides-data');
     if (root && data) {
-      type Slide = { id: string; href: string; src: string; alt: string; title: string; caption: string; date: string; credit: string };
+      type Slide = { id: string; href: string; src: string; srcset: string; alt: string; title: string; caption: string; date: string; credit: string };
       const slides: Slide[] = JSON.parse(data.textContent ?? '[]');
       const q = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
       const img = q<HTMLImageElement>('[data-img]');
@@ -246,6 +248,8 @@ const icons: Record<string, string> = {
       function show(n: number) {
         i = (n + slides.length) % slides.length;
         const s = slides[i];
+        // Set srcset first so the browser fetches the copy that fits, not the original
+        img.srcset = s.srcset;
         img.src = s.src;
         img.alt = s.alt;
         q('[data-meta]').textContent = s.date ? `${s.id} · ${s.date}` : s.id;

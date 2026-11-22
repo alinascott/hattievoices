@@ -6,6 +6,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import StoryCard from '../../components/StoryCard.astro';
 import Value from '../../components/Value.astro';
 import { url } from '../../lib/url';
+import { responsive, shareImage } from '../../lib/images';
 import { getPhotos, getStories, type Photo } from '../../lib/content';
 
 export async function getStaticPaths() {
@@ -17,6 +18,8 @@ const { photo } = Astro.props as { photo: Photo };
 const d = photo.data;
 const { Content } = await render(photo);
 const hasBody = Boolean(photo.body?.trim());
+const img = responsive(d.image);
+const share = shareImage(d.image, Astro.site);
 
 // Stories linked from either side: the photo's related_stories, or a story's related_photos.
 const linked = new Set(d.related_stories.map((r) => r.id));
@@ -44,7 +47,7 @@ const rows: { label: string; value?: string; href?: string }[] = [
 ].filter((r) => r.value?.trim());
 ---
 
-<BaseLayout title={d.title} section="photographs" description={d.caption}>
+<BaseLayout title={d.title} section="photographs" description={d.caption} image={share} imageAlt={d.alt} type="article">
   <article class="container photo-page">
     <nav class="crumbs label" aria-label="Breadcrumb">
       <a href={url('/photographs/')}>Photographs</a> <span aria-hidden="true">/</span> <span>{photo.id}</span>
@@ -53,7 +56,7 @@ const rows: { label: string; value?: string; href?: string }[] = [
     <div class="layout">
       <figure class="figure">
         <a class="image-link" href={url(d.image)} aria-label={`Open the full-size image: ${d.title}`}>
-          <img src={url(d.image)} alt={d.alt} />
+          <img {...img} sizes="(min-width: 56rem) 55vw, 100vw" alt={d.alt} />
         </a>
         <figcaption>
           <p>{d.caption}</p>
@@ -134,7 +137,7 @@ const rows: { label: string; value?: string; href?: string }[] = [
 
   .figure { background: var(--white); border: 1px solid var(--rule); padding: var(--space-3); }
   .image-link { display: block; }
-  .figure img { width: 100%; max-height: 85vh; object-fit: contain; background: var(--panel); }
+  .figure img { width: 100%; height: auto; max-height: 85vh; object-fit: contain; background: var(--panel); }
   figcaption { padding-top: var(--space-3); font-size: var(--step--1); color: var(--muted); }
   figcaption .credit { margin-top: var(--space-1); font-family: var(--font-mono); font-size: 0.8rem; }
 
