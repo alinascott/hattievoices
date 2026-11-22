@@ -5,6 +5,15 @@ import { url } from '../../lib/url';
 import { getPhotos } from '../../lib/content';
 
 const photos = await getPhotos();
+// Collections in the filter, largest first
+const counts = new Map<string, number>();
+for (const p of photos) if (p.data.collection) counts.set(p.data.collection, (counts.get(p.data.collection) ?? 0) + 1);
+const collections = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+// Text the search box looks through
+const searchText = (p: (typeof photos)[number]) =>
+  [p.data.title, p.data.caption, p.data.alt, p.data.date, p.data.creator, p.data.lender, p.data.source, p.data.collection, p.body, p.id]
+    .filter(Boolean)
+    .join(' ');
 ---
 
 <BaseLayout title="Photographs" section="photographs" description="Photographs of Hurricane Hattie and its aftermath, lent to the archive.">
@@ -19,12 +28,31 @@ const photos = await getPhotos();
         </p>
       </header>
 
-      <p class="count label">{photos.length} {photos.length === 1 ? 'photograph' : 'photographs'}</p>
+      {photos.length > 0 && (
+        <form class="filters" id="filters" role="search" aria-label="Filter photographs" hidden>
+          <div class="field">
+            <label for="q" class="label">Search</label>
+            <input id="q" name="q" type="search" placeholder="Places, people, captions" autocomplete="off" />
+          </div>
+          {collections.length > 0 && (
+            <div class="field">
+              <label for="collection" class="label">Collection</label>
+              <select id="collection" name="collection">
+                <option value="">All photographs</option>
+                {collections.map(([name, n]) => <option value={name}>{name} ({n})</option>)}
+              </select>
+            </div>
+          )}
+          <button type="reset" class="btn btn-ghost">Clear</button>
+        </form>
+      )}
+
+      <p class="count label" id="count" aria-live="polite">{photos.length} {photos.length === 1 ? 'photograph' : 'photographs'}</p>
 
       {photos.length > 0 ? (
-        <ul class="photo-grid">
+        <ul class="photo-grid" id="photo-list">
           {photos.map((p) => (
-            <li>
+            <li data-collection={p.data.collection ?? ''} data-search={searchText(p)}>
               <PhotoCard href={url(`/photographs/${p.id}/`)} image={p.data.image} title={p.data.title} date={p.data.date} />
             </li>
           ))}
@@ -32,6 +60,9 @@ const photos = await getPhotos();
       ) : (
         <p>No photographs have been added yet.</p>
       )}
+      <p class="no-match" id="no-match" hidden>
+        No photographs match. <button type="button" class="link-button" id="no-match-reset">Clear the search</button>
+      </p>
 
       <aside class="call card" aria-labelledby="call-title">
         <div>
@@ -48,11 +79,96 @@ const photos = await getPhotos();
   </section>
 </BaseLayout>
 
+<script>
+  // Search and collection filter. Without JavaScript the form stays hidden and every photograph shows.
+  const form = document.querySelector<HTMLFormElement>('#filters');
+  const list = document.querySelector<HTMLUListElement>('#photo-list');
+  if (form && list) {
+    const count = document.querySelector<HTMLParagraphElement>('#count')!;
+    const noMatch = document.querySelector<HTMLParagraphElement>('#no-match')!;
+    const items = [...list.querySelectorAll<HTMLLIElement>('li')];
+    // Lower-case and strip accents so "belice" finds "Belíce"
+    const normalise = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const text = new Map(items.map((li) => [li, normalise(li.dataset.search ?? '')]));
+    const fields = ['q', 'collection'] as const;
+
+    function apply() {
+      const data = new FormData(form!);
+      const f = Object.fromEntries(fields.map((k) => [k, String(data.get(k) ?? '').trim()])) as Record<(typeof fields)[number], string>;
+      const terms = normalise(f.q).split(/\s+/).filter(Boolean);
+      let shown = 0;
+      for (const li of items) {
+        const match = (!f.collection || li.dataset.collection === f.collection) && terms.every((t) => text.get(li)!.includes(t));
+        li.hidden = !match;
+        if (match) shown++;
+      }
+      count.textContent = `${shown} ${shown === 1 ? 'photograph' : 'photographs'}${shown < items.length ? ` of ${items.length}` : ''}`;
+      noMatch.hidden = shown > 0;
+      // Keep the filters in the address bar so a filtered view can be shared
+      const params = new URLSearchParams();
+      for (const k of fields) if (f[k]) params.set(k, f[k]);
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+    }
+
+    // Restore filters from the URL, e.g. /photographs/?collection=…
+    const params = new URLSearchParams(location.search);
+    for (const k of fields) {
+      const v = params.get(k);
+      const el = form.elements.namedItem(k);
+      if (v && (el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) el.value = v;
+    }
+
+    form.hidden = false;
+    form.addEventListener('input', apply);
+    form.addEventListener('submit', (e) => e.preventDefault());
+    form.addEventListener('reset', () => setTimeout(apply));
+    document.querySelector('#no-match-reset')!.addEventListener('click', () => form.reset());
+    apply();
+  }
+</script>
+
 <style>
   .page-head { margin-bottom: var(--space-6); }
   .page-head h1 { margin-top: var(--space-2); }
   .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
   .count { color: var(--muted); margin-bottom: var(--space-4); }
+
+  .filters {
+    background: var(--panel);
+    border-top: 4px solid var(--ink);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+    display: grid;
+    gap: var(--space-4);
+    align-items: end;
+  }
+  @media (min-width: 48rem) {
+    .filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; }
+  }
+  .filters[hidden] { display: none; }
+  .field { display: grid; gap: var(--space-2); min-width: 0; }
+  .field > .label { color: var(--muted); }
+  input[type='search'], select {
+    width: 100%;
+    min-height: var(--tap);
+    padding: var(--space-2) var(--space-3);
+    background: var(--white);
+    border: 1px solid var(--muted);
+    border-radius: var(--radius);
+  }
+  select {
+    appearance: none;
+    padding-right: 2.25rem;
+    text-overflow: ellipsis;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text) 50%), linear-gradient(135deg, var(--text) 50%, transparent 50%);
+    background-position: right 1.1rem center, right 0.75rem center;
+    background-size: 0.35rem 0.35rem;
+    background-repeat: no-repeat;
+  }
+  .photo-grid li[hidden] { display: none; }
+  .no-match { margin-top: var(--space-4); }
+  .link-button { background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; color: var(--accent); font: inherit; }
   .photo-grid {
     list-style: none;
     padding: 0;

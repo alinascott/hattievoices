@@ -158,6 +158,11 @@ const photos = defineCollection({
     /** Where visitors can explore the full item on another website, e.g. a digitised book. */
     explore_url: z.string().url().optional().or(z.literal('')),
     explore_label: z.string().optional(),
+    /**
+     * Groups photographs from the same album, book or photographer. Records with exactly the same
+     * text are linked to each other on their pages and can be filtered together on the Photographs page.
+     */
+    collection: z.string().optional(),
     original_or_copy: z.string().min(1),
     rights: z.string().min(1),
     /** Web copy shown on the site */
