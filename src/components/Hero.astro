@@ -1,6 +1,7 @@
 ---
 import { getEntry } from 'astro:content';
 import { url } from '../lib/url';
+import { responsive } from '../lib/images';
 import Value from './Value.astro';
 
 // Caption and credits come from the photograph's own record, so they only need
@@ -8,12 +9,15 @@ import Value from './Value.astro';
 const photo = await getEntry('photos', 'PH-1961-001');
 if (!photo) throw new Error('Hero photograph record PH-1961-001 is missing');
 const { caption, credit, source_url } = photo.data;
+const { srcset } = responsive('/images/belize-city-aerial-1962-hero.jpg');
 ---
 
 <section class="hero on-ink" aria-labelledby="hero-title">
   <img
     class="hero-img"
     src={url('/images/belize-city-aerial-1962-hero.jpg')}
+    srcset={srcset}
+    sizes="100vw"
     alt="Aerial photograph of Belize City after Hurricane Hattie, showing the street grid on both sides of Haulover Creek and the sea to the south."
     width="1056"
     height="1180"

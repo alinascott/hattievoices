@@ -83,7 +83,7 @@ The **Deploy to GitHub Pages** workflow builds and publishes the site, usually w
 
 ## Adding a photograph
 
-1. Put the image in `public/images/`. A JPEG around 1,600 px on its long side is a good web copy. Optionally keep a full-resolution original alongside it for download.
+1. Put the image in `public/images/`. A JPEG around 1,600 px on its long side is a good web copy. Optionally keep a full-resolution original alongside it for download. Smaller copies for the photo grids, and the picture shown when a page is shared, are made automatically by `scripts/make-thumbnails.mjs` whenever you run `npm run dev` or `npm run build` (and on every deploy). They go in `public/images/thumbs/`, which isn't committed.
 2. `cp templates/photo.md src/content/photos/PH-1961-006.md` (the next free number) and fill it in. `alt` describes what the image shows for people using screen readers; `caption` is the visible caption; `credit` is the short line shown under the image.
 3. Set `published` to the date you add it. The homepage shows the most recent six.
 4. If the item can be explored further on another website, such as a digitised book, set `explore_url` and `explore_label` to add a button to it. For Friesen's *Hurricane "Hattie"* on UF Digital Collections, viewer image N+1 shows printed page N, so page 84 is `https://ufdc.ufl.edu/UF00095344/00001/images/85`.
@@ -101,7 +101,7 @@ Newsreels, news reports and other video go on the **Media** page. They are never
 
 ## The homepage intro
 
-The first time someone opens the homepage, the swing bridge logo opens and closes in the middle of the screen, then moves into its place in the header. It plays once per browser, is skipped for people who have turned on reduced motion, and can be skipped with a click or any key. It lives in `src/components/BridgeIntro.astro` and is switched on by `<BaseLayout intro>` in `src/pages/index.astro`; remove `intro` there to turn it off. To see it again in your own browser, clear the site's data or run `localStorage.removeItem('hv-bridge-intro-seen')` in the browser console.
+The first time someone opens the homepage, the swing bridge logo appears over Haulover Creek and swings open, a small boat sails across the screen and the homepage appears in its wake, and the bridge closes and moves into its place in the header (about 8 seconds). The prototype it came from, and the other versions considered, are in `future additions/bridge-intros/`. It plays once per browser, is skipped for people who have turned on reduced motion, and can be skipped with a click or any key. It lives in `src/components/BridgeIntro.astro` and is switched on by `<BaseLayout intro>` in `src/pages/index.astro`; remove `intro` there to turn it off. To see it again in your own browser, clear the site's data or run `localStorage.removeItem('hv-bridge-intro-seen')` in the browser console.
 
 ## Adding a storm to the timeline
 

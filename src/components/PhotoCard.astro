@@ -1,17 +1,21 @@
 ---
+import { responsive } from '../lib/images';
+
 interface Props {
   href: string;
+  /** Site path of the image, e.g. /images/foo.jpg (without the base path) */
   image: string;
   title: string;
   date?: string;
   alt?: string;
 }
 const { href, image, title, date, alt = '' } = Astro.props;
+const img = responsive(image);
 ---
 
 <figure class="photo-card">
   <a href={href}>
-    <div class="frame"><img src={image} alt={alt} loading="lazy" decoding="async" /></div>
+    <div class="frame"><img {...img} sizes="(min-width: 40rem) 22rem, 100vw" alt={alt} loading="lazy" decoding="async" /></div>
     <figcaption>
       <span class="title">{title}</span>
       {date && <span class="meta">{date}</span>}
