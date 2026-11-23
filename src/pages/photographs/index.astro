@@ -3,6 +3,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import PhotoCard from '../../components/PhotoCard.astro';
 import { url } from '../../lib/url';
 import { getPhotos } from '../../lib/content';
+import { responsive, shareImage } from '../../lib/images';
+
+// Header photograph. When its source is confirmed, give it its own record and update the credit here.
+const HEADER_IMAGE = '/images/belize-city-flood-1961.jpg';
+const headerImg = responsive(HEADER_IMAGE);
+const headerAlt =
+  'Black-and-white photograph of the Swing Bridge in Belize City under floodwater after Hurricane Hattie. Water covers the bridge deck and the road, with railings and lamp posts standing in it, and debris floats in front of damaged two-storey buildings.';
+const headerCaption = 'Floodwater over the Swing Bridge in Belize City after the storm.';
+const headerCredit = 'Credit to be confirmed.';
 
 const photos = await getPhotos();
 // Collections in the filter, largest first
@@ -16,17 +25,23 @@ const searchText = (p: (typeof photos)[number]) =>
     .join(' ');
 ---
 
-<BaseLayout title="Photographs" section="photographs" description="Photographs of Hurricane Hattie and its aftermath, lent to the archive.">
-  <section class="section">
-    <div class="container">
-      <header class="page-head">
-        <p class="eyebrow">The archive</p>
-        <h1>Photographs</h1>
-        <p class="lede">
-          Pictures of British Honduras before and after Hurricane Hattie. Each one is credited to the person or
-          collection that lent it.
-        </p>
-      </header>
+<BaseLayout
+  title="Photographs"
+  section="photographs"
+  description="Photographs of Hurricane Hattie and its aftermath, lent to the archive."
+  image={shareImage(HEADER_IMAGE, Astro.site)}
+  imageAlt={headerAlt}
+>
+  <header class="photo-hero on-ink">
+    <img class="hero-img" {...headerImg} sizes="100vw" alt={headerAlt} fetchpriority="high" decoding="async" />
+    <div class="hero-scrim" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <p class="eyebrow">The archive</p>
+      <h1>Photographs</h1>
+      <p class="lede">
+        Pictures of British Honduras before and after Hurricane Hattie. Each one is credited to the person or
+        collection that lent it.
+      </p>
 
       {photos.length > 0 && (
         <form class="filters" id="filters" role="search" aria-label="Filter photographs" hidden>
@@ -46,7 +61,16 @@ const searchText = (p: (typeof photos)[number]) =>
           <button type="reset" class="btn btn-ghost">Clear</button>
         </form>
       )}
+    </div>
+  </header>
+  <div class="hero-caption">
+    <div class="container">
+      <p><span class="label">Above</span> {headerCaption} <span class="credit">{headerCredit}</span></p>
+    </div>
+  </div>
 
+  <section class="section grid-section">
+    <div class="container">
       <p class="count label" id="count" aria-live="polite">{photos.length} {photos.length === 1 ? 'photograph' : 'photographs'}</p>
 
       {photos.length > 0 ? (
@@ -129,24 +153,53 @@ const searchText = (p: (typeof photos)[number]) =>
 </script>
 
 <style>
-  .page-head { margin-bottom: var(--space-6); }
-  .page-head h1 { margin-top: var(--space-2); }
-  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+  /* Header: full-width photograph with an even tint, title and search centred */
+  .photo-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--ink);
+    color: var(--on-ink);
+    min-height: min(58vh, 32rem);
+    display: flex;
+    align-items: center;
+    text-align: center;
+  }
+  .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; z-index: -2; }
+  .hero-scrim { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(18 33 43 / 0.55), rgb(18 33 43 / 0.85)); }
+  .hero-inner { padding-block: var(--space-8); display: flex; flex-direction: column; align-items: center; }
+  .photo-hero h1 { color: var(--white); margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; max-width: 36rem; color: var(--white); }
+
+  .hero-caption { background: var(--ink); color: var(--on-ink); border-top: 1px solid var(--rule-on-ink); padding-block: var(--space-3); font-size: var(--step--1); }
+  .hero-caption p { max-width: none; }
+  .hero-caption .label { color: var(--accent-on-ink); margin-right: var(--space-2); }
+  .hero-caption .credit { margin-left: var(--space-1); }
+
+  .grid-section { padding-top: var(--space-6); }
   .count { color: var(--muted); margin-bottom: var(--space-4); }
 
+  /* Search sits in the header on a white panel */
   .filters {
-    background: var(--panel);
-    border-top: 4px solid var(--ink);
+    margin-top: var(--space-6);
+    width: min(100%, 52rem);
+    background: var(--white);
+    color: var(--text);
+    border-radius: var(--radius);
     padding: var(--space-4);
-    margin-bottom: var(--space-5);
     display: grid;
-    gap: var(--space-4);
+    gap: var(--space-3) var(--space-4);
     align-items: end;
+    text-align: left;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
   }
   @media (min-width: 48rem) {
-    .filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; }
+    .filters { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; }
   }
   .filters[hidden] { display: none; }
+  /* The panel is light, so the Clear button uses the light-background colours, not the header's */
+  .filters .btn-ghost { background: transparent; color: var(--accent); border-color: var(--accent); justify-self: start; }
+  .filters .btn-ghost:hover { background: var(--accent); color: var(--white); }
   .field { display: grid; gap: var(--space-2); min-width: 0; }
   .field > .label { color: var(--muted); }
   input[type='search'], select {
