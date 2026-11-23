@@ -66,9 +66,17 @@ export async function getMedia(): Promise<Media[]> {
     for (const ref of m.data.related_stories) {
       if (!storyIds.has(ref.id)) problems.push(`${m.id}: related story "${ref.id}" not found`);
     }
+    if (m.data.transcript && !(await getEntry('transcripts', m.data.transcript))) {
+      problems.push(`${m.id}: transcript "${m.data.transcript}.json" not found in src/content/transcripts/`);
+    }
   }
   if (problems.length) throw new Error(`Content problems:\n  - ${problems.join('\n  - ')}`);
   return items;
+}
+
+/** A media record's transcript, if it has one. */
+export async function getMediaTranscript(item: Media): Promise<Transcript | undefined> {
+  return item.data.transcript ? getEntry('transcripts', item.data.transcript) : undefined;
 }
 
 export async function getTranscript(story: Story): Promise<Transcript> {

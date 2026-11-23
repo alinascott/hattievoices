@@ -2,8 +2,9 @@
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StoryCard from '../../components/StoryCard.astro';
+import Transcript from '../../components/Transcript.astro';
 import { url } from '../../lib/url';
-import { getMedia, getStories, TESTIMONY_KIND, type Media } from '../../lib/content';
+import { getMedia, getMediaTranscript, getStories, TESTIMONY_KIND, type Media } from '../../lib/content';
 
 export async function getStaticPaths() {
   const items = await getMedia();
@@ -16,6 +17,9 @@ const d = item.data;
 const isTestimony = d.kind === TESTIMONY_KIND;
 const { Content } = await render(item);
 const hasBody = Boolean(item.body?.trim());
+// Testimonies with a video can be viewed as the video or as a transcript
+const transcript = await getMediaTranscript(item);
+const showViews = isTestimony && Boolean(d.youtube_id);
 const isArticle = d.format === 'article';
 // e.g. "amandala.com.bz", shown on the button for written pieces
 const site = new URL(d.url).hostname.replace(/^www\./, '');
@@ -48,8 +52,18 @@ const rows = [
 
     <div class="layout">
       <div class="main">
+        {showViews && (
+          <div class="views" role="group" aria-label="View this testimony as" data-views hidden>
+            <span class="label views-label" aria-hidden="true">View</span>
+            <button type="button" data-view="video" aria-pressed="true">Video</button>
+            <button type="button" data-view="transcript" aria-pressed="false">
+              Transcript{!transcript && <span class="soon"> · coming soon</span>}
+            </button>
+          </div>
+        )}
+
         {d.youtube_id ? (
-          <figure class="video">
+          <figure class="video" id="view-video" data-panel="video">
             <div class="frame">
               <!-- youtube-nocookie.com: YouTube's privacy-enhanced mode, no tracking cookies until play -->
               <iframe
@@ -77,6 +91,30 @@ const rows = [
             </a>
             <p class="meta credit">{d.credit}</p>
           </div>
+        )}
+
+        {showViews && (
+          <section class="transcript-panel" id="view-transcript" data-panel="transcript" aria-labelledby="transcript-title">
+            <h2 id="transcript-title" class="panel-title">Transcript</h2>
+            {transcript ? (
+              <>
+                <p class="meta panel-note">Select a time to play the video from that point.</p>
+                <Transcript
+                  transcript={transcript.data}
+                  clips={[{ n: 1, title: d.title, start: '00:00' }]}
+                  clipHeadings={false}
+                />
+              </>
+            ) : (
+              <div class="no-transcript card">
+                <p class="label">Not available yet</p>
+                <p>
+                  A transcript of this testimony is being prepared. When it is ready it will appear here, so the
+                  testimony can be read as well as watched.
+                </p>
+              </div>
+            )}
+          </section>
         )}
 
         {hasBody && <div class="body"><Content /></div>}
@@ -120,6 +158,46 @@ const rows = [
   </article>
 </BaseLayout>
 
+<script>
+  // Video / Transcript switch on testimony pages. Without JavaScript both show, one after the other.
+  const views = document.querySelector<HTMLElement>('[data-views]');
+  if (views) {
+    const panels = [...document.querySelectorAll<HTMLElement>('[data-panel]')];
+    const buttons = [...views.querySelectorAll<HTMLButtonElement>('[data-view]')];
+    const iframe = document.querySelector<HTMLIFrameElement>('#view-video iframe');
+
+    const show = (view: string, updateUrl = true) => {
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+      panels.forEach((p) => (p.hidden = p.dataset.panel !== view));
+      if (updateUrl) {
+        const u = new URL(location.href);
+        if (view === 'transcript') u.searchParams.set('view', 'transcript');
+        else u.searchParams.delete('view');
+        history.replaceState(null, '', u);
+      }
+    };
+
+    views.hidden = false;
+    show(new URLSearchParams(location.search).get('view') === 'transcript' ? 'transcript' : 'video', false);
+    views.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-view]');
+      if (b) show(b.dataset.view!);
+    });
+
+    // Selecting a time in the transcript switches to the video and plays from there
+    document.addEventListener('hv:seek', (e) => {
+      const { offset } = (e as CustomEvent<{ clip: number; offset: number }>).detail;
+      if (!iframe) return;
+      const u = new URL(iframe.src);
+      u.searchParams.set('start', String(Math.floor(offset)));
+      u.searchParams.set('autoplay', '1');
+      iframe.src = u.toString();
+      show('video');
+      iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+</script>
+
 <style>
   .media-page { padding-block: var(--space-5) var(--space-8); }
   .crumbs { color: var(--muted); margin-bottom: var(--space-5); display: flex; gap: var(--space-2); align-items: center; }
@@ -142,6 +220,36 @@ const rows = [
   .offsite .credit { margin-top: var(--space-1); }
 
   .body { margin-top: var(--space-6); }
+
+  /* Video / Transcript switch */
+  .views { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .views[hidden] { display: none; }
+  .views-label { color: var(--muted); margin-right: var(--space-1); }
+  .views button {
+    min-height: var(--tap);
+    padding-inline: var(--space-4);
+    background: var(--white);
+    color: var(--text);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  .views button[aria-pressed='true'] { background: var(--ink); color: var(--white); }
+  .views button:focus-visible { outline: var(--focus); outline-offset: 2px; }
+  .soon { text-transform: none; letter-spacing: normal; color: var(--muted); }
+  .views button[aria-pressed='true'] .soon { color: var(--on-ink); }
+  [data-panel][hidden] { display: none; }
+
+  .transcript-panel { margin-top: var(--space-6); }
+  [data-views]:not([hidden]) ~ .transcript-panel { margin-top: 0; }
+  .panel-title { font-size: var(--step-2); border-top: 4px solid var(--ink); padding-top: var(--space-3); margin-bottom: var(--space-3); }
+  .panel-note { margin-bottom: var(--space-4); }
+  .no-transcript { border-top-color: var(--accent); display: grid; gap: var(--space-2); }
+  .no-transcript .label { color: var(--accent); }
 
   dl { border-top: 4px solid var(--ink); }
   dl div { display: grid; grid-template-columns: 8rem 1fr; gap: var(--space-3); padding-block: var(--space-3); border-bottom: 1px solid var(--rule); }
