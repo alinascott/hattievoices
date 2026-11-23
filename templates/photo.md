@@ -18,6 +18,7 @@ original_or_copy: ""            # e.g. "Original print" or "Scan of a newspaper 
 rights: ""
 image: /images/PH-1961-000.jpg  # web copy shown on the site
 image_original: ""              # optional full-resolution file offered as a download
+pages: []                       # optional, for multi-page items (magazine, letter, booklet): see PH-1961-012 for an example
 related_stories: []             # story ids, e.g. [HV-1961-001]
 published: 2026-01-01           # date added to the archive; orders the "latest" grid
 ---

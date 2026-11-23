@@ -30,6 +30,8 @@ const d = photo.data;
 const { Content } = await render(photo);
 const hasBody = Boolean(photo.body?.trim());
 const img = responsive(d.image);
+// Multi-page items: each page with its smaller copies
+const pages = d.pages.map((pg) => ({ ...pg, img: responsive(pg.image), full: url(pg.image) }));
 const share = shareImage(d.image, Astro.site);
 
 // Stories linked from either side: the photo's related_stories, or a story's related_photos.
@@ -73,6 +75,7 @@ const rows: { label: string; value?: string; href?: string }[] = [
         <figcaption>
           <p>{d.caption}</p>
           {d.credit && <p class="credit">{d.credit}</p>}
+          {pages.length > 0 && <p class="read-all"><a href="#pages">Read all {pages.length} pages <span aria-hidden="true">↓</span></a></p>}
         </figcaption>
       </figure>
 
@@ -111,6 +114,28 @@ const rows: { label: string; value?: string; href?: string }[] = [
         </p>
       </div>
     </div>
+
+    {pages.length > 0 && (
+      <section class="related pages" id="pages" aria-labelledby="pages-title">
+        <div class="section-head">
+          <h2 id="pages-title">All {pages.length} pages</h2>
+          <span class="label muted">Tap a page to open it full size</span>
+        </div>
+        <ol class="page-stack">
+          {pages.map((pg, i) => (
+            <li>
+              <figure>
+                <figcaption class="label muted">{pg.label} <span aria-hidden="true">·</span> {i + 1} of {pages.length}</figcaption>
+                <a href={pg.full} aria-label={`Open ${pg.label} full size`}>
+                  <img {...pg.img} sizes="(min-width: 50rem) 46rem, 100vw" alt={pg.alt} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                </a>
+              </figure>
+            </li>
+          ))}
+        </ol>
+        <p class="back-top"><a href="#main">Back to top <span aria-hidden="true">↑</span></a></p>
+      </section>
+    )}
 
     {set.length > 1 && (
       <section class="related collection" aria-labelledby="collection-title">
@@ -198,6 +223,13 @@ const rows: { label: string; value?: string; href?: string }[] = [
   .lend { margin-top: var(--space-5); }
 
   .related { margin-top: var(--space-8); }
+  .read-all { margin-top: var(--space-2); font-weight: 600; }
+  .page-stack { list-style: none; padding: 0; display: grid; gap: var(--space-6); max-width: 46rem; margin-inline: auto; }
+  .page-stack figure { background: var(--white); border: 1px solid var(--rule); padding: var(--space-3); }
+  .page-stack figcaption { margin-bottom: var(--space-2); }
+  .page-stack img { width: 100%; height: auto; display: block; }
+  .pages .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-2); border-top: 4px solid var(--ink); padding-top: var(--space-3); }
+  .back-top { text-align: center; margin-top: var(--space-5); }
   .collection .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--space-3); border-top: 4px solid var(--ink); padding-top: var(--space-3); }
   .collection h2 { font-size: var(--step-2); margin-top: var(--space-1); }
   .muted { color: var(--muted); }
