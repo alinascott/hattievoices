@@ -18,7 +18,7 @@ interface Props {
   section?: 'listen' | 'photographs' | 'media' | 'about' | 'get-involved';
   /** Keep the page out of search results (e.g. the form's thank-you page). */
   noindex?: boolean;
-  /** Show the swing bridge intro (homepage, first visit only). */
+  /** Show the content advisory and swing bridge intro (homepage, first visit only). */
   intro?: boolean;
   /** Picture shown when the page is shared (from shareImage()). Defaults to the homepage aerial photograph. */
   image?: { src: string; width: number; height: number };
@@ -47,10 +47,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     {noindex && <meta name="robots" content="noindex" />}
     {intro && (
       <script is:inline>
-        // Decide before the first paint whether the swing bridge intro plays (see BridgeIntro.astro)
+        // Decide before the first paint whether the content advisory and swing bridge intro show
+        // (see BridgeIntro.astro). First visit only; with reduced motion it shows without moving.
         try {
-          if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !localStorage.getItem('hv-bridge-intro-seen')) {
+          if (!localStorage.getItem('hv-bridge-intro-seen')) {
             document.documentElement.classList.add('bridge-intro');
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('bridge-intro-still');
           }
         } catch (e) {}
       </script>
