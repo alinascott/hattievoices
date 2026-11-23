@@ -169,6 +169,21 @@ const photos = defineCollection({
     image: z.string().regex(/^\/images\//, 'Images live in /images/'),
     /** Optional full-resolution original offered as a download */
     image_original: z.string().optional(),
+    /**
+     * For multi-page items (a magazine article, letter or booklet): every page in reading order.
+     * The photo page shows them stacked one under another; `image` is the thumbnail used elsewhere.
+     */
+    pages: z
+      .array(
+        z.object({
+          image: z.string().regex(/^\/images\//, 'Images live in /images/'),
+          /** Short label shown above the page, e.g. "Cover" or "Page 5" */
+          label: z.string().min(1),
+          /** What the page shows, for screen readers */
+          alt: z.string().min(1),
+        }),
+      )
+      .default([]),
     related_stories: z.array(reference('stories')).default([]),
     /** Used to order the "latest photographs" grid */
     published: z.coerce.date(),

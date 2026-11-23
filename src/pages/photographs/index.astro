@@ -11,7 +11,7 @@ for (const p of photos) if (p.data.collection) counts.set(p.data.collection, (co
 const collections = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 // Text the search box looks through
 const searchText = (p: (typeof photos)[number]) =>
-  [p.data.title, p.data.caption, p.data.alt, p.data.date, p.data.creator, p.data.lender, p.data.source, p.data.collection, p.body, p.id]
+  [p.data.title, p.data.caption, p.data.alt, p.data.date, p.data.creator, p.data.lender, p.data.source, p.data.collection, ...p.data.pages.map((pg) => pg.alt), p.body, p.id]
     .filter(Boolean)
     .join(' ');
 ---

@@ -42,7 +42,7 @@ export async function getPhotos(): Promise<Photo[]> {
     for (const ref of p.data.related_stories) {
       if (!storyIds.has(ref.id)) problems.push(`${p.id}: related story "${ref.id}" not found`);
     }
-    for (const file of [p.data.image, p.data.image_original].filter(Boolean) as string[]) {
+    for (const file of [p.data.image, p.data.image_original, ...p.data.pages.map((pg) => pg.image)].filter(Boolean) as string[]) {
       if (!existsSync(join('public', file))) problems.push(`${p.id}: image public${file} not found`);
     }
   }
