@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StoryCard from '../../components/StoryCard.astro';
+import PhotoCard from '../../components/PhotoCard.astro';
 import Value from '../../components/Value.astro';
 import { url } from '../../lib/url';
 import { responsive, shareImage } from '../../lib/images';
@@ -11,10 +12,20 @@ import { getPhotos, getStories, type Photo } from '../../lib/content';
 
 export async function getStaticPaths() {
   const photos = await getPhotos();
-  return photos.map((photo) => ({ params: { id: photo.id }, props: { photo } }));
+  return photos.map((photo) => {
+    // Other photographs in the same collection, in archive-number order
+    const set = photo.data.collection
+      ? photos.filter((p) => p.data.collection === photo.data.collection).sort((a, b) => a.id.localeCompare(b.id))
+      : [];
+    return { params: { id: photo.id }, props: { photo, set } };
+  });
 }
 
-const { photo } = Astro.props as { photo: Photo };
+const { photo, set } = Astro.props as { photo: Photo; set: Photo[] };
+const pos = set.findIndex((p) => p.id === photo.id);
+const prev = set.length > 1 ? set[(pos - 1 + set.length) % set.length] : undefined;
+const next = set.length > 1 ? set[(pos + 1) % set.length] : undefined;
+const collectionHref = photo.data.collection ? url(`/photographs/?collection=${encodeURIComponent(photo.data.collection)}`) : '';
 const d = photo.data;
 const { Content } = await render(photo);
 const hasBody = Boolean(photo.body?.trim());
@@ -41,6 +52,7 @@ const rows: { label: string; value?: string; href?: string }[] = [
   { label: 'Creator', value: d.creator },
   { label: 'Held by', value: d.lender },
   { label: 'Source', value: d.source, href: d.source_url || undefined },
+  { label: 'Collection', value: d.collection, href: collectionHref || undefined },
   { label: 'Original or copy', value: d.original_or_copy },
   { label: 'Rights', value: d.rights },
   { label: 'Archive ID', value: photo.id },
@@ -100,6 +112,34 @@ const rows: { label: string; value?: string; href?: string }[] = [
       </div>
     </div>
 
+    {set.length > 1 && (
+      <section class="related collection" aria-labelledby="collection-title">
+        <div class="section-head">
+          <div>
+            <p class="label muted">More from this collection</p>
+            <h2 id="collection-title">{d.collection}</h2>
+          </div>
+          <a class="label" href={collectionHref}>See all {set.length} →</a>
+        </div>
+        <nav class="pager" aria-label="Within this collection">
+          <a class="btn btn-ghost" href={url(`/photographs/${prev!.id}/`)} rel="prev">
+            <span aria-hidden="true">←</span> <span class="pager-text"><span class="label">Previous</span> <span class="pager-title">{prev!.data.title}</span></span>
+          </a>
+          <p class="label muted pos">{pos + 1} of {set.length}</p>
+          <a class="btn btn-ghost next" href={url(`/photographs/${next!.id}/`)} rel="next">
+            <span class="pager-text"><span class="label">Next</span> <span class="pager-title">{next!.data.title}</span></span> <span aria-hidden="true">→</span>
+          </a>
+        </nav>
+        <ul class="photo-grid">
+          {set.filter((p) => p.id !== photo.id).map((p) => (
+            <li>
+              <PhotoCard href={url(`/photographs/${p.id}/`)} image={p.data.image} title={p.data.title} date={p.data.date} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
     {stories.length > 0 && (
       <section class="related" aria-labelledby="related-title">
         <div class="section-head">
@@ -158,6 +198,37 @@ const rows: { label: string; value?: string; href?: string }[] = [
   .lend { margin-top: var(--space-5); }
 
   .related { margin-top: var(--space-8); }
+  .collection .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--space-3); border-top: 4px solid var(--ink); padding-top: var(--space-3); }
+  .collection h2 { font-size: var(--step-2); margin-top: var(--space-1); }
+  .muted { color: var(--muted); }
+  .pager { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--space-3); align-items: center; margin-block: var(--space-5); }
+  .pager .btn { display: flex; align-items: center; gap: var(--space-2); text-align: left; min-width: 0; }
+  .pager .next { justify-content: flex-end; text-align: right; }
+  .pager-text { display: flex; flex-direction: column; min-width: 0; }
+  .pager-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-transform: none;
+    letter-spacing: normal;
+    font-family: var(--font-body);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .pager-text .label { font-size: 0.7rem; }
+  .pos { text-align: center; }
+  @media (max-width: 40rem) {
+    .pager { grid-template-columns: 1fr 1fr; }
+    .pos { grid-column: 1 / -1; grid-row: 1; }
+  }
+  .photo-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  }
   .card-grid {
     list-style: none;
     padding: 0;

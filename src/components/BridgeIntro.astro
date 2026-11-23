@@ -1,31 +1,56 @@
 ---
-// Homepage intro, shown once per browser: the swing bridge logo opens and closes
-// in the middle of the screen, then flies into its place in the header.
-// The logo is one PNG, so it is drawn twice and clipped: the span (truss and deck,
+// Homepage intro, shown once per browser ("Boat's wake"): the swing bridge sits over
+// Haulover Creek and swings open; a small boat sails across the screen at the waterline
+// and the homepage appears in its wake. The bridge then closes and moves into its place
+// in the header. Prototype: future additions/bridge-intros/e-wake.html.
+// The logo is one image, so it is drawn twice and clipped: the span (truss and deck,
 // rows 0–117 of 159) swings about the pivot, the pedestal below it stays still.
 // Skipped without JavaScript, with reduced motion, and on every visit after the first.
 // BaseLayout's `intro` prop adds the check in <head> that switches it on.
 import { url } from '../lib/url';
 
-const logo = url('/images/hattie-voices-logo-dark.png');
+const logo = url('/images/hattie-voices-logo-dark.webp');
 ---
 
 <div class="bridge-intro-overlay" aria-hidden="true">
-  <div class="bridge-intro-logo">
-    <img class="bridge-intro-pedestal" src={logo} alt="" width="560" height="159" />
-    <img class="bridge-intro-span" src={logo} alt="" width="560" height="159" />
+  <!-- The navy screen; the boat's wake wipes it away from left to right -->
+  <div class="bridge-intro-screen"></div>
+  <div class="bridge-intro-scene">
+    <div class="bridge-intro-logo">
+      <img class="bridge-intro-pedestal" src={logo} alt="" width="560" height="159" />
+      <img class="bridge-intro-span" src={logo} alt="" width="560" height="159" />
+    </div>
+    <div class="bridge-intro-water">
+      <svg viewBox="0 0 800 42" preserveAspectRatio="none">
+        <path d="M0,8 q25,-6 50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0"></path>
+        <path d="M0,22 q30,-5 60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0 t60,0"></path>
+        <path d="M0,35 q35,-4 70,0 t70,0 t70,0 t70,0 t70,0 t70,0 t70,0 t70,0 t70,0 t70,0 t70,0 t70,0"></path>
+      </svg>
+    </div>
+    <p class="bridge-intro-caption label">Haulover Creek, Belize City</p>
   </div>
+  <svg class="bridge-intro-boat" viewBox="0 0 100 80">
+    <line class="mast" x1="48" y1="8" x2="48" y2="58"></line>
+    <path class="sail" d="M52,10 L52,54 L84,54 Z"></path>
+    <path class="sail" d="M44,16 L44,54 L22,54 Z" opacity=".75"></path>
+    <path class="hull" d="M6,60 L94,60 L82,76 L18,76 Z"></path>
+  </svg>
   <p class="bridge-intro-skip label">Click or press any key to skip</p>
 </div>
 
 <script>
   const root = document.documentElement;
   const overlay = document.querySelector<HTMLElement>('.bridge-intro-overlay');
+  const screen = overlay?.querySelector<HTMLElement>('.bridge-intro-screen');
+  const scene = overlay?.querySelector<HTMLElement>('.bridge-intro-scene');
   const logo = overlay?.querySelector<HTMLElement>('.bridge-intro-logo');
   const span = overlay?.querySelector<HTMLElement>('.bridge-intro-span');
+  const water = overlay?.querySelector<HTMLElement>('.bridge-intro-water');
+  const caption = overlay?.querySelector<HTMLElement>('.bridge-intro-caption');
+  const boat = overlay?.querySelector<SVGElement>('.bridge-intro-boat');
   const target = document.querySelector<HTMLElement>('.site-header .brand-logo img');
 
-  if (root.classList.contains('bridge-intro') && overlay && logo && span && target) {
+  if (root.classList.contains('bridge-intro') && overlay && screen && scene && logo && span && water && caption && boat && target) {
     try {
       localStorage.setItem('hv-bridge-intro-seen', '1');
     } catch {
@@ -53,37 +78,66 @@ const logo = url('/images/hattie-voices-logo-dark.png');
 
     const OPEN = 'perspective(4000px) rotateY(82deg)';
     const CLOSED = 'perspective(4000px) rotateY(0deg)';
+    const EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
 
     (async () => {
       try {
-        await play(logo, [{ opacity: 0, transform: 'scale(0.94)' }, { opacity: 1, transform: 'scale(1)' }], {
-          duration: 500,
-          easing: 'ease-out',
-        });
-        // Swing open, as the bridge turns to let boats through, then close again
-        await play(span, [{ transform: CLOSED }, { transform: OPEN }], { duration: 1200, delay: 250, easing: 'ease-in-out' });
-        await play(span, [{ transform: OPEN }, { transform: CLOSED }], { duration: 1100, delay: 400, easing: 'ease-in-out' });
+        // The boat sails across the whole screen at the waterline under the bridge
+        const sceneBox = scene.getBoundingClientRect();
+        const boatBox = boat.getBoundingClientRect();
+        boat.style.top = `${sceneBox.bottom - boatBox.height + 2}px`;
 
-        // Fly into the header logo's place while the backdrop fades away
+        // Gentle motion that runs throughout: the water drifts, the boat bobs
+        play(water.firstElementChild!, [{ transform: 'translateX(0)' }, { transform: 'translateX(-50%)' }], {
+          duration: 9000,
+          iterations: Infinity,
+          easing: 'linear',
+        });
+        play(boat, [{ translate: '0 0' }, { translate: '0 -3px' }, { translate: '0 0' }], {
+          duration: 700,
+          iterations: Infinity,
+        });
+
+        await Promise.all([
+          play(logo, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 600, easing: 'ease-out' }),
+          play(water, [{ opacity: 0 }, { opacity: 1 }], { duration: 800 }),
+          play(caption, [{ opacity: 0 }, { opacity: 0.8 }], { duration: 800, delay: 300 }),
+        ]);
+
+        // Swing open, as the bridge turns to let boats through
+        await play(span, [{ transform: CLOSED }, { transform: OPEN }], { duration: 1100, delay: 150, easing: 'ease-in-out' });
+
+        // The boat crosses and the homepage appears in its wake: the screen's left edge follows the stern
+        const width = innerWidth;
+        const boatWidth = boatBox.width;
+        const crossing = 3000;
+        overlay.classList.add('leaving');
+        await Promise.all([
+          play(boat, [{ opacity: 1, transform: `translateX(${-boatWidth}px)` }, { opacity: 1, transform: `translateX(${width}px)` }], {
+            duration: crossing,
+            easing: 'linear',
+          }),
+          play(screen, [{ clipPath: `inset(0 0 0 ${(-boatWidth / width) * 100}%)` }, { clipPath: 'inset(0 0 0 100%)' }], {
+            duration: crossing,
+            easing: 'linear',
+          }),
+          play(water, [{ opacity: 1 }, { opacity: 0 }], { duration: 500 }),
+          play(caption, [{ opacity: 0.8 }, { opacity: 0 }], { duration: 400 }),
+        ]);
+
+        // Close the bridge over the photograph, then move it into the header
+        await play(span, [{ transform: OPEN }, { transform: CLOSED }], { duration: 1000, easing: 'ease-in-out' });
         const from = logo.getBoundingClientRect();
         const to = target.getBoundingClientRect();
         const dx = to.left + to.width / 2 - (from.left + from.width / 2);
         const dy = to.top + to.height / 2 - (from.top + from.height / 2);
-        const s = to.width / from.width;
         if (finished) return;
-        overlay.classList.add('leaving');
-        await Promise.all([
-          play(logo, [{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${s})` }], {
-            duration: 850,
-            delay: 200,
-            easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
-          }),
-          play(overlay, [{ backgroundColor: '#12252F' }, { backgroundColor: 'rgba(18, 37, 47, 0)' }], {
-            duration: 750,
-            delay: 300,
-            easing: 'ease-in',
-          }),
-        ]);
+        logo.classList.add('flying');
+        await play(logo, [{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${to.width / from.width})` }], {
+          duration: 900,
+          delay: 150,
+          easing: EASE,
+        });
       } catch {
         /* animation cancelled by a skip */
       }
@@ -109,16 +163,30 @@ const logo = url('/images/hattie-voices-logo-dark.png');
     position: fixed;
     inset: 0;
     z-index: 1000;
-    /* Matches the navy baked into the logo image, so the rotating span shows no box edge */
-    background: #12252F;
     cursor: pointer;
   }
+  /* Matches the navy baked into the logo image, so the rotating span shows no box edge */
+  .bridge-intro-screen { position: absolute; inset: 0; background: #12252F; }
+
+  .bridge-intro-scene { position: relative; z-index: 1; width: min(80vw, 34rem); }
   .bridge-intro-logo {
     position: relative;
-    width: min(80vw, 34rem);
+    width: 100%;
     aspect-ratio: 560 / 159;
     transform-origin: center;
   }
+  /* A soft navy halo: invisible against the navy screen, and keeps the bridge
+     readable over the photograph and headline once the page shows */
+  .bridge-intro-logo::before {
+    content: '';
+    position: absolute;
+    inset: -14% -5%;
+    background: #12252F;
+    border-radius: 14px;
+    box-shadow: 0 0 50px 28px rgb(18 37 47 / 0.92);
+    transition: opacity 0.6s 0.3s;
+  }
+  .bridge-intro-logo.flying::before { opacity: 0; }
   .bridge-intro-logo img {
     position: absolute;
     inset: 0;
@@ -134,8 +202,44 @@ const logo = url('/images/hattie-voices-logo-dark.png');
   }
   .bridge-intro-pedestal { clip-path: inset(75% 0 0 0); }
 
+  .bridge-intro-water {
+    position: absolute;
+    left: -30%;
+    right: -30%;
+    top: calc(100% - 6px);
+    height: 42px;
+    overflow: hidden;
+    opacity: 0;
+  }
+  .bridge-intro-water svg { width: 200%; height: 100%; display: block; }
+  .bridge-intro-water path { fill: none; stroke: var(--on-ink); stroke-width: 1.5; opacity: 0.35; }
+
+  .bridge-intro-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 54px);
+    text-align: center;
+    color: var(--on-ink);
+    opacity: 0;
+  }
+
+  .bridge-intro-boat {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: min(12vw, 5.1rem);
+    height: auto;
+    opacity: 0;
+  }
+  .bridge-intro-boat .hull { fill: var(--accent-on-ink); }
+  .bridge-intro-boat .sail { fill: #fff; }
+  .bridge-intro-boat .mast { stroke: #fff; stroke-width: 2; }
+
   .bridge-intro-skip {
     position: absolute;
+    z-index: 1;
     bottom: var(--space-6);
     left: 0;
     right: 0;
@@ -145,4 +249,6 @@ const logo = url('/images/hattie-voices-logo-dark.png');
     transition: opacity 0.3s;
   }
   .bridge-intro-overlay.leaving .bridge-intro-skip { opacity: 0; }
+  /* Full width, so the site's paragraph measure doesn't pull them off centre */
+  .bridge-intro-skip, .bridge-intro-caption { max-width: none; margin: 0; }
 </style>

@@ -13,6 +13,7 @@ source_url: ""                  # link to the catalogue record, if any
 credit: ""                      # short credit line shown under the image, e.g. "Wellcome Collection, RAMC/1196. CC BY-NC."
 explore_url: ""                 # optional: where to explore the full item on another site, e.g. a digitised book
 explore_label: ""               # button text for explore_url, e.g. "Read the full book at UF Digital Collections"
+collection: ""                  # optional: album, book or photographer this belongs to; copy the exact text from another record to group them
 original_or_copy: ""            # e.g. "Original print" or "Scan of a newspaper reproduction"
 rights: ""
 image: /images/PH-1961-000.jpg  # web copy shown on the site
