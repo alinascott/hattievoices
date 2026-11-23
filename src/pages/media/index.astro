@@ -3,6 +3,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import MediaCard from '../../components/MediaCard.astro';
 import { url } from '../../lib/url';
 import { getMedia, TESTIMONY_KIND } from '../../lib/content';
+import { responsive, shareImage } from '../../lib/images';
+
+// Header clippings, both from the Soldier magazine article in the archive (PH-1961-012)
+const record = url('/photographs/PH-1961-012/');
+const mapImg = responsive('/images/soldier-1962-02-map.jpg');
+const sangImg = responsive('/images/soldier-1962-02-they-sang.jpg');
+const mapAlt =
+  'Clipping from Soldier magazine, 1962: a hand-drawn map of the Caribbean with a large arrow labelled British Honduras, beside the headline The Colony of the Depths.';
+const sangAlt =
+  'Clipping from Soldier magazine, 1962: a photograph of flattened wooden houses above the headline They Sang Through the Horror, with the line Three-quarters of Belize’s wooden homes were completely destroyed.';
 
 // Survivor testimonies are shown on the Listen page
 const items = (await getMedia()).filter((m) => m.data.kind !== TESTIMONY_KIND);
@@ -12,10 +22,16 @@ const groups = [
 ].filter((g) => g.items.length > 0);
 ---
 
-<BaseLayout title="Media" section="media" description="Newsreels, news reports, articles and other media about Hurricane Hattie.">
-  <section class="section">
-    <div class="container">
-      <header class="page-head">
+<BaseLayout
+  title="Media"
+  section="media"
+  description="Newsreels, news reports, articles and other media about Hurricane Hattie."
+  image={shareImage('/images/soldier-1962-02-they-sang.jpg', Astro.site)}
+  imageAlt={sangAlt}
+>
+  <header class="media-hero on-ink">
+    <div class="container hero-grid">
+      <div>
         <p class="eyebrow">The archive</p>
         <h1>Media</h1>
         <p class="lede">
@@ -24,7 +40,39 @@ const groups = [
           it rather than copy it.
         </p>
         <p class="see-also">Looking for survivors' own words? See the <a href={url('/stories/')}>survivor testimonies on the Listen page</a>.</p>
-      </header>
+      </div>
+      <!-- Two clippings laid over each other and taped down -->
+      <figure class="clippings">
+        <a href={record} class="clip clip-map">
+          <span class="tape tape-map" aria-hidden="true"></span>
+          <img {...mapImg} sizes="(min-width: 56rem) 26rem, 80vw" alt={mapAlt} decoding="async" />
+        </a>
+        <a href={record} class="clip clip-sang">
+          <span class="tape tape-sang" aria-hidden="true"></span>
+          <img {...sangImg} sizes="(min-width: 56rem) 26rem, 80vw" alt={sangAlt} decoding="async" />
+        </a>
+        <figcaption>
+          Clippings from “In the Wake of Hurricane ‘Hattie’”, <cite>Soldier</cite> magazine, February 1962, pages 7 and 8.
+          <a href={record}>See the full article</a>
+        </figcaption>
+      </figure>
+    </div>
+  </header>
+
+  <section class="section media-body">
+    <div class="container">
+      {groups.length > 1 && (
+        <nav class="jump" aria-label="On this page">
+          <span class="label jump-label">Jump to</span>
+          <ul>
+            {groups.map((g) => (
+              <li>
+                <a href={`#group-${g.key}`}>{g.heading} <span class="jump-count">{g.items.length}<span class="visually-hidden"> {g.items.length === 1 ? 'item' : 'items'}</span></span></a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {groups.length > 0 ? (
         groups.map((g) => (
@@ -61,10 +109,65 @@ const groups = [
 </BaseLayout>
 
 <style>
-  .page-head { margin-bottom: var(--space-6); }
-  .page-head h1 { margin-top: var(--space-2); }
-  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; }
+  /* Header: dark band with two taped Soldier magazine clippings */
+  .media-hero { background: var(--ink); color: var(--on-ink); }
+  .hero-grid { display: grid; gap: var(--space-7); align-items: center; padding-block: var(--space-7); }
+  @media (min-width: 56rem) { .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); } }
+  .media-hero h1 { color: var(--white); margin-top: var(--space-2); }
+  .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; max-width: 34rem; color: var(--white); }
   .see-also { margin-top: var(--space-4); }
+  .media-hero .see-also a, .clippings figcaption a { color: var(--accent-on-ink); }
+
+  .clippings { margin: 0; display: grid; grid-template-columns: repeat(12, 1fr); align-items: start; }
+  .clip { position: relative; display: block; }
+  .clip img { display: block; width: 100%; height: auto; border: 1px solid rgb(18 33 43 / 0.15); box-shadow: 0 14px 34px rgb(0 0 0 / 0.55); }
+  .clip-map { grid-column: 1 / 10; grid-row: 1; transform: rotate(-2deg); }
+  .clip-sang { grid-column: 4 / 13; grid-row: 1; margin-top: 38%; transform: rotate(1.5deg); z-index: 1; }
+  .clippings figcaption { grid-column: 1 / -1; margin-top: var(--space-5); font-size: var(--step--1); color: var(--on-ink); }
+
+  /* Strips of tape holding the clippings down */
+  .tape {
+    position: absolute;
+    z-index: 1;
+    top: -0.7rem;
+    width: 6rem;
+    height: 1.6rem;
+    background: rgb(255 248 220 / 0.85);
+    border: 1px solid rgb(18 33 43 / 0.08);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  }
+  .tape-map { left: 6%; transform: rotate(-9deg); }
+  .tape-sang { right: 10%; transform: rotate(8deg); }
+  @media (max-width: 47.99rem) { .tape { width: 3.5rem; height: 1rem; top: -0.45rem; } }
+
+  .media-body { padding-top: var(--space-7); }
+
+  /* Jump links to the Watch and Read sections */
+  .jump { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-7); }
+  .jump-label { color: var(--muted); }
+  .jump ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .jump a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap);
+    padding-inline: var(--space-4);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius);
+    font-family: var(--font-display);
+    font-weight: var(--display-weight);
+    font-stretch: var(--display-stretch);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .jump a:hover { background: var(--ink); color: var(--white); }
+  .jump a:hover .jump-count { color: var(--accent-on-ink); }
+  .jump-count { font-family: var(--font-mono); font-weight: 500; font-size: 0.8rem; color: var(--accent); }
+  /* Leave a little room above a section heading when jumped to */
+  .group-head h2 { scroll-margin-top: var(--space-5); }
+  @media (prefers-reduced-motion: no-preference) { :global(html) { scroll-behavior: smooth; } }
   .group + .group { margin-top: var(--space-8); }
   .group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); padding-bottom: var(--space-2); border-bottom: 4px solid var(--ink); }
   .count { color: var(--muted); }
