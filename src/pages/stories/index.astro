@@ -5,6 +5,15 @@ import MediaCard from '../../components/MediaCard.astro';
 import { DISTRICTS, LANGUAGES } from '../../config';
 import { url } from '../../lib/url';
 import { getMedia, getStories, getTranscript, TESTIMONY_KIND } from '../../lib/content';
+import { responsive, shareImage } from '../../lib/images';
+
+// Header photograph. When its source is confirmed, update the credit here.
+const HEADER_IMAGE = '/images/belize-city-troops-1961.jpg';
+const headerImg = responsive(HEADER_IMAGE);
+const headerAlt =
+  'Black-and-white photograph of two young women, Mehetibel and Hawtence Underwood, walking along a Belize City street towards the camera, one with her arm on the other’s shoulder, looking across at a long line of British soldiers in berets marching the other way. Damaged wooden buildings and debris line the street, and a dog stands in the road.';
+const headerCaption = 'Mehetibel and Hawtence Underwood (Gillette) looking at a line of soldiers in Belize City after Hurricane Hattie, 1961.';
+const headerCredit = 'Credit to be confirmed.';
 
 const stories = await getStories();
 
@@ -34,23 +43,49 @@ const index = await Promise.all(
 );
 ---
 
-<BaseLayout title="Listen" section="listen" description="Browse and search the oral histories of Hurricane Hattie.">
-  <section class="section">
+<BaseLayout
+  title="Listen"
+  section="listen"
+  description="Browse and search the oral histories of Hurricane Hattie."
+  image={shareImage(HEADER_IMAGE, Astro.site)}
+  imageAlt={headerAlt}
+>
+  <header class="listen-hero on-ink">
+    <img class="hero-img" {...headerImg} sizes="100vw" alt={headerAlt} fetchpriority="high" decoding="async" />
+    <div class="hero-scrim" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <p class="eyebrow">The archive</p>
+      <h1>Listen</h1>
+      <p class="hero-lede">
+        Audio and video testimonies from people who lived through Hurricane Hattie, and the families who carry their
+        stories.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="#listen-intro">Browse testimonies</a>
+        <a class="btn btn-ghost" href={url('/get-involved/')}>Share your story</a>
+      </div>
+    </div>
+  </header>
+  <div class="hero-caption">
     <div class="container">
-      <header class="page-head">
-        <p class="eyebrow">The archive</p>
-        <h1>Listen</h1>
+      <p><span class="label">Above</span> {headerCaption} <span class="credit">{headerCredit}</span></p>
+    </div>
+  </div>
+
+  <section class="section listen-body">
+    <div class="container">
+      <div class="page-head" id="listen-intro">
         <p class="lede">
-          This page is dedicated to audio and video testimonies of those who experienced Hurricane Hattie. Some
-          interviews were conducted in 2021 by the Belize National Library Service Information System and published on
-          the 60th anniversary of Hattie. Each one plays from the library's YouTube channel and stays with the library.
-          <a href={playlist} rel="noopener">See the full playlist on YouTube <span aria-hidden="true">↗</span><span class="visually-hidden">(on another website)</span></a>
+          Some interviews were conducted in 2021 by the Belize National Library Service Information System and published on
+          the 60th anniversary of Hattie. Others were recorded by BelizeanHeritage for the 50th anniversary, or come from
+          news reports and storytellers. Each one plays from its publisher's YouTube channel and stays with them.
+          <a href={playlist} rel="noopener">See the library's full playlist on YouTube <span aria-hidden="true">↗</span><span class="visually-hidden">(on another website)</span></a>
         </p>
         <p class="lede">
           We are actively conducting interviews to add to this collection. If you or a loved one has a story, consider
           <a href={url('/get-involved/')}>reaching out to us</a>.
         </p>
-      </header>
+      </div>
 
       <div class="sections">
       {testimonies.length > 0 && (
@@ -69,6 +104,7 @@ const index = await Promise.all(
                   duration={m.data.duration}
                   summary={m.data.summary}
                   embedded={Boolean(m.data.youtube_id)}
+                  views={m.data.youtube_id ? { hasTranscript: Boolean(m.data.transcript) } : undefined}
                 />
               </li>
             ))}
@@ -244,8 +280,32 @@ const index = await Promise.all(
 </script>
 
 <style>
-  .page-head { margin-bottom: var(--space-7); }
-  .page-head h1 { margin-top: var(--space-2); }
+  /* Header: full-width photograph with an even tint, everything centred (matches Photographs) */
+  .listen-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--ink);
+    color: var(--on-ink);
+    min-height: min(58vh, 32rem);
+    display: flex;
+    align-items: center;
+    text-align: center;
+  }
+  .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; z-index: -2; }
+  .hero-scrim { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(18 33 43 / 0.55), rgb(18 33 43 / 0.85)); }
+  .hero-inner { padding-block: var(--space-8); display: flex; flex-direction: column; align-items: center; }
+  .listen-hero h1 { color: var(--white); margin-top: var(--space-2); }
+  .hero-lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; max-width: 34rem; color: var(--white); }
+  .hero-actions { margin-top: var(--space-6); display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: center; }
+
+  .hero-caption { background: var(--ink); color: var(--on-ink); border-top: 1px solid var(--rule-on-ink); padding-block: var(--space-3); font-size: var(--step--1); }
+  .hero-caption p { max-width: none; }
+  .hero-caption .label { color: var(--accent-on-ink); margin-right: var(--space-2); }
+  .hero-caption .credit { margin-left: var(--space-1); }
+
+  .listen-body { padding-top: var(--space-7); }
+  .page-head { margin-bottom: var(--space-7); scroll-margin-top: var(--space-5); }
   .lede { margin-top: var(--space-4); font-size: var(--step-1); line-height: 1.5; max-width: 46rem; }
   .lede + .lede { margin-top: var(--space-3); }
 

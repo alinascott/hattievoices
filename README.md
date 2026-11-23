@@ -92,6 +92,16 @@ The **Deploy to GitHub Pages** workflow builds and publishes the site, usually w
 
 The homepage hero uses `public/images/belize-city-aerial-1962-hero.jpg`, a copy of the RAF aerial photograph with the printed caption strip cropped off. Its record (`src/content/photos/PH-1961-001.md`) points to the uncropped original, and the hero's caption and credit line are read from that record, so a change there updates both places. `scripts/make-hero.mjs` regenerates the web copies if the original changes.
 
+## Adding a transcript to a testimony
+
+Survivor testimonies on the Listen page can be watched or read. Each testimony page has a **View: Video / Transcript** switch, and each card on the Listen page has **Video** and **Transcript** links. Until a transcript is added, the Transcript view says it is being prepared and the card says "Transcript coming soon".
+
+1. `cp templates/transcript.json src/content/transcripts/MD-1961-003.json`, naming it after the testimony's id.
+2. Fill in the segments. Use `"clip": 1` for every segment, and timestamps (`t`) as positions in the video, e.g. `"02:15"`. Selecting a timestamp on the page plays the video from that point.
+3. Add `transcript: MD-1961-003` to the testimony's record in `src/content/media/`.
+
+If `npm run dev` is already running when you add the first transcript, stop it and start it again so it picks up the new file. The build checks that every `transcript:` named in a record exists.
+
 ## Adding video and news reports
 
 Newsreels, news reports and other video go on the **Media** page. They are never copied to the site.

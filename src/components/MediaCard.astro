@@ -10,8 +10,11 @@ interface Props {
   summary: string;
   embedded: boolean;
   format?: 'video' | 'article';
+  /** Testimonies: offer "View: Video / Transcript" links instead of the single "Watch here" line */
+  views?: { hasTranscript: boolean };
 }
-const { href, title, kind, date, creator, platform, duration, summary, embedded, format = 'video' } = Astro.props;
+const { href, title, kind, date, creator, platform, duration, summary, embedded, format = 'video', views } = Astro.props;
+const transcriptHref = `${href}${href.includes('?') ? '&' : '?'}view=transcript#view-transcript`;
 const where = format === 'article' ? 'Read online ↗' : embedded ? 'Watch here →' : `Watch on ${platform} ↗`;
 ---
 
@@ -20,7 +23,19 @@ const where = format === 'article' ? 'Read online ↗' : embedded ? 'Watch here 
   <h3><a href={href}>{title}</a></h3>
   <p class="creator">{creator}</p>
   <p class="summary">{summary}</p>
-  <p class="where label" aria-hidden="true">{where}</p>
+  {views ? (
+    <p class="views label">
+      <span class="views-label">View</span>
+      <a href={href}>Video<span class="visually-hidden">: {title}</span></a>
+      {views.hasTranscript ? (
+        <a href={transcriptHref}>Transcript<span class="visually-hidden">: {title}</span></a>
+      ) : (
+        <span class="soon">Transcript coming soon</span>
+      )}
+    </p>
+  ) : (
+    <p class="where label" aria-hidden="true">{where}</p>
+  )}
 </article>
 
 <style>
@@ -40,4 +55,20 @@ const where = format === 'article' ? 'Read online ↗' : embedded ? 'Watch here 
   .creator { font-weight: 600; }
   .summary { color: var(--muted); font-size: var(--step--1); }
   .where { margin-top: auto; color: var(--accent); }
+
+  /* View links sit above the whole-card link so each can be clicked on its own */
+  .views { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); position: relative; z-index: 1; }
+  .views-label { color: var(--muted); margin-right: var(--space-1); }
+  .views a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .views a:hover { background: var(--accent); color: var(--white); }
+  .soon { color: var(--muted); text-transform: none; letter-spacing: normal; font-family: var(--font-body); font-size: var(--step--1); padding-inline: var(--space-2); }
 </style>

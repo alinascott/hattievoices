@@ -8,8 +8,10 @@ import Value from './Value.astro';
 interface Props {
   transcript: Transcript['data'];
   clips: { n: number; title: string; start: string }[];
+  /** Show a "Clip n" heading above each clip's passages. Off for a single continuous video. */
+  clipHeadings?: boolean;
 }
-const { transcript, clips } = Astro.props;
+const { transcript, clips, clipHeadings = true } = Astro.props;
 const { original_language: orig, translation_language: trans, segments } = transcript;
 const hasTranslation = Boolean(trans && segments.some((s) => s.translation));
 const origLang = LANG_CODES[orig];
@@ -32,9 +34,13 @@ const WITHHELD = "[Passage withheld at the narrator's request]";
 
   {groups.map((g) => (
     <section class="clip-group" aria-labelledby={`tr-clip-${g.clip.n}`}>
-      <h3 id={`tr-clip-${g.clip.n}`} class="group-title">
-        <span class="label">Clip {g.clip.n}</span> <Value value={g.clip.title} />
-      </h3>
+      {clipHeadings ? (
+        <h3 id={`tr-clip-${g.clip.n}`} class="group-title">
+          <span class="label">Clip {g.clip.n}</span> <Value value={g.clip.title} />
+        </h3>
+      ) : (
+        <h3 id={`tr-clip-${g.clip.n}`} class="visually-hidden"><Value value={g.clip.title} /></h3>
+      )}
       <ol class="segments">
         {g.segments.map((s) => {
           const offset = toSeconds(s.t) - toSeconds(g.clip.start);

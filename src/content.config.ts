@@ -216,6 +216,9 @@ const media = defineCollection({
       youtube_id: z.string().regex(/^[\w-]{11}$/, 'A YouTube id is the 11 characters after v= in the link').optional().or(z.literal('')), // embed this YouTube video on the page
       rights: z.string().min(1),
       credit: z.string().min(1),
+      // Optional transcript in src/content/transcripts/, named without .json, e.g. MD-1961-003.
+      // Timestamps are positions in the video; use "clip": 1 for every segment.
+      transcript: z.string().optional(),
       related_stories: z.array(reference('stories')).default([]),
       published: z.coerce.date(), // date added to the archive
     })
